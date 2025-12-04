@@ -48,6 +48,45 @@ def init_db():
         conn.commit()
 
     conn.close()
+def get_or_create_owner_for_current_user():
+    """Return the owners row for the logged-in owner.
+       If it doesn't exist yet, create it from the users table."""
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    owner = cur.execute(
+        "SELECT * FROM owners WHERE user_id = ?", (user_id,)
+    ).fetchone()
+
+    if not owner:
+        # create profile from users table
+        user = cur.execute(
+            "SELECT * FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+
+        if not user:
+            conn.close()
+            return None
+
+        cur.execute(
+            """
+            INSERT INTO owners (user_id, name, email, location, password)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (user["id"], user["name"], user["email"], "", ""),
+        )
+        conn.commit()
+
+        owner = cur.execute(
+            "SELECT * FROM owners WHERE user_id = ?", (user_id,)
+        ).fetchone()
+
+    conn.close()
+    return owner
 
 
 # create DB file if it doesn't exist yet
@@ -148,11 +187,12 @@ def login():
     return render_template("login.html")
 
 
-@app.route("/logout")
+@app.route("/logout", methods=["GET", "POST"])
 def logout():
     session.clear()
     flash("You have been logged out.", "info")
     return redirect(url_for("login"))
+
 
 
 @app.route("/dashboard")
@@ -163,8 +203,10 @@ def dashboard():
     role = session.get("role")
 
     if role == "owner":
-        dashboard_type = "Pet Owner Dashboard (later: pet profile, appointments, history)"
+        # send owners to Faria's owner dashboard
+        return redirect(url_for("owner_dashboard"))
     elif role == "clinic":
+        # clinic dashboard will be plugged in later
         dashboard_type = "Vet Clinic Dashboard (later: schedule, bookings, pet records)"
     elif role == "admin":
         dashboard_type = "Admin Dashboard (later: approve clinics, monitor system)"
@@ -172,6 +214,168 @@ def dashboard():
         dashboard_type = "Unknown role"
 
     return render_template("dashboard.html", dashboard_type=dashboard_type)
+# ------------- Faria: Owner Dashboard & Pets -------------
+
+@app.route("/owner/dashboard")
+def owner_dashboard():
+    if "user_id" not in session or session.get("role") != "owner":
+        return redirect(url_for("login"))
+
+    owner = get_or_create_owner_for_current_user()
+    if not owner:
+        flash("Owner profile not found.", "danger")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    pets = cur.execute(
+        "SELECT * FROM pets WHERE owner_id = ?", (owner["id"],)
+    ).fetchall()
+    conn.close()
+
+    # tab=? in URL, default "owner"
+    tab = request.args.get("tab", "owner")
+    return render_template("owner_dashboard.html", owner=owner, pets=pets, tab=tab)
+
+
+@app.route("/owner/pets/add", methods=["GET", "POST"])
+def add_pet_form():
+    if "user_id" not in session or session.get("role") != "owner":
+        return redirect(url_for("login"))
+
+    owner = get_or_create_owner_for_current_user()
+    if not owner:
+        flash("Owner profile not found.", "danger")
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        name = request.form.get("name")
+        age = request.form.get("age")
+        animal_type = request.form.get("animal_type")
+        breed = request.form.get("breed")
+        gender = request.form.get("gender")
+        vaccination_status = request.form.get("vaccination_status")
+
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO pets (owner_id, name, age, animal_type, breed, gender, vaccination_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (owner["id"], name, age, animal_type, breed, gender, vaccination_status),
+        )
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("owner_dashboard", tab="pets"))
+
+    return render_template("add_pet.html")
+
+
+@app.route("/owner/pets/<int:pet_id>/edit", methods=["GET", "POST"])
+def edit_pet_form(pet_id):
+    if "user_id" not in session or session.get("role") != "owner":
+        return redirect(url_for("login"))
+
+    owner = get_or_create_owner_for_current_user()
+    if not owner:
+        flash("Owner profile not found.", "danger")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    pet = cur.execute(
+        "SELECT * FROM pets WHERE id = ? AND owner_id = ?",
+        (pet_id, owner["id"]),
+    ).fetchone()
+
+    if not pet:
+        conn.close()
+        flash("Pet not found.", "warning")
+        return redirect(url_for("owner_dashboard", tab="pets"))
+
+    if request.method == "POST":
+        name = request.form.get("name")
+        age = request.form.get("age")
+        animal_type = request.form.get("animal_type")
+        breed = request.form.get("breed")
+        gender = request.form.get("gender")
+        vaccination_status = request.form.get("vaccination_status")
+
+        cur.execute(
+            """
+            UPDATE pets
+            SET name = ?, age = ?, animal_type = ?, breed = ?, gender = ?, vaccination_status = ?
+            WHERE id = ? AND owner_id = ?
+            """,
+            (name, age, animal_type, breed, gender, vaccination_status, pet_id, owner["id"]),
+        )
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("owner_dashboard", tab="pets"))
+
+    conn.close()
+    return render_template("edit_pet.html", pet=pet)
+
+
+@app.route("/owner/pets/<int:pet_id>/delete", methods=["POST"])
+def delete_pet_from_dashboard(pet_id):
+    if "user_id" not in session or session.get("role") != "owner":
+        return redirect(url_for("login"))
+
+    owner = get_or_create_owner_for_current_user()
+    if not owner:
+        flash("Owner profile not found.", "danger")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM pets WHERE id = ? AND owner_id = ?",
+        (pet_id, owner["id"]),
+    )
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("owner_dashboard", tab="pets"))
+
+
+@app.route("/owner/profile/edit", methods=["GET", "POST"])
+def edit_owner_profile():
+    if "user_id" not in session or session.get("role") != "owner":
+        return redirect(url_for("login"))
+
+    owner = get_or_create_owner_for_current_user()
+    if not owner:
+        flash("Owner profile not found.", "danger")
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        name = request.form["name"]
+        email = request.form["email"]
+        location = request.form["location"]
+        password = request.form["password"]
+
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE owners
+            SET name = ?, email = ?, location = ?, password = ?
+            WHERE id = ?
+            """,
+            (name, email, location, password, owner["id"]),
+        )
+        conn.commit()
+        conn.close()
+
+        flash("Profile updated successfully.", "success")
+        return redirect(url_for("owner_dashboard", tab="owner"))
+
+    return render_template("edit_owner_profile.html", owner=owner)
+
 
 
 if __name__ == "__main__":

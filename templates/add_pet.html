@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Add Pet</title>
+</head>
+<body style="background-color: #e8f6ff; font-family: 'Segoe UI', Arial, sans-serif;">
+
+    <div style="max-width: 550px; margin: 30px auto; background: #f4f9ff;
+                border-radius: 20px; padding: 20px 24px;
+                box-shadow: 0 8px 18px rgba(0,0,0,0.05);">
+
+        <h1 style="font-size: 20px; color: #1565c0; margin-top: 0;">
+            Add New Pet
+        </h1>
+        <p style="font-size: 13px; color: #6d88a8; margin-top: 4px;">
+            Fill in the details to add a new pet to your profile.
+        </p>
+
+        <form method="post"
+            onsubmit="event.preventDefault(); openPetSaveModal(this);"
+            style="margin-top: 10px;">
+
+            <!-- Pet Name -->
+            <div style="margin-bottom: 10px;">
+                <label>Pet Name:</label><br>
+                <input type="text" name="name" placeholder="e.g. Snowy, Simba" required
+                    style="width: 100%; padding: 6px 8px; border-radius: 10px; border: 1px solid #c5d7f2;">
+            </div>
+
+            <!-- Age (text) -->
+            <div style="margin-bottom: 10px;">
+                <label>Age:</label><br>
+                <input type="text" name="age" placeholder="e.g. 2 years, 8 months" required
+                    style="width: 100%; padding: 6px 8px; border-radius: 10px; border: 1px solid #c5d7f2;">
+            </div>
+            <!-- Animal Type -->
+            <div style="margin-bottom: 10px;">
+                <label>Animal Type:</label><br>
+                <select name="animal_type"
+                    style="width: 100%; padding: 6px 8px; border-radius: 10px; border: 1px solid #c5d7f2;">
+                  <option value="Dog">Dog</option>
+                  <option value="Cat">Cat</option>
+                  <option value="Bird">Bird</option>
+                  <option value="Rabbit">Rabbit</option>
+                  <option value="Other">Other</option>
+                </select>
+            </div>
+            <!-- Breed -->
+            <div style="margin-bottom: 10px;">
+                <label>Breed:</label><br>
+                <input type="text" name="breed" required
+                    style="width: 100%; padding: 6px 8px; border-radius: 10px; border: 1px solid #c5d7f2;">
+            </div>
+
+            <div style="margin-bottom: 10px;">
+                <label>Gender:</label><br>
+                <select name="gender"
+                        style="width: 100%; padding: 6px 8px; border-radius: 10px; border: 1px solid #c5d7f2;">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Unknown">Unknown</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <label>Vaccination Status:</label><br>
+                <select name="vaccination_status"
+                        style="width: 100%; padding: 6px 8px; border-radius: 10px; border: 1px solid #c5d7f2;">
+                    <option value="Completed">Completed</option>
+                    <option value="Pending">Pending</option>
+                </select>
+
+            </div>
+
+            <button type="submit"
+                    style="padding: 7px 18px; border-radius: 999px; border: none;
+                           background-color: #1e88e5; color: white; font-size: 13px;">
+                Save Pet
+            </button>
+
+            <a href="{{ url_for('owner_dashboard') }}"
+               style="margin-left: 8px; font-size: 13px; text-decoration: none; color: #1565c0;">
+                Cancel
+            </a>
+        </form>
+    </div>
+<!-- Cute confirmation modal for saving a new pet -->
+<div id="pet-save-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+        <div class="modal-title">Save New Pet?</div>
+        <div class="modal-text">
+            This pet will be added to your profile.
+        </div>
+        <div class="modal-buttons">
+            <button id="pet-save-confirm" class="modal-btn-danger">Save</button>
+            <button id="pet-save-cancel" class="modal-btn-cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* you can reuse these styles from owner_dashboard if you like */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.25);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 999;
+    }
+    .modal-card {
+        background: #f4f9ff;
+        border-radius: 18px;
+        padding: 18px 22px;
+        min-width: 260px;
+        max-width: 340px;
+        border: 1px solid #c9dfff;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+        text-align: center;
+    }
+    .modal-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #1565c0;
+    }
+    .modal-text {
+        font-size: 13px;
+        color: #4a5f80;
+        margin-bottom: 14px;
+    }
+    .modal-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+    .modal-btn-danger,
+    .modal-btn-cancel {
+        padding: 6px 14px;
+        border-radius: 16px;
+        border: none;
+        font-size: 13px;
+        cursor: pointer;
+    }
+    .modal-btn-danger {
+        background: #1e88e5;
+        color: #ffffff;
+    }
+    .modal-btn-cancel {
+        background: #e3e3e3;
+        color: #555;
+    }
+</style>
+
+<script>
+    let petSaveForm = null;
+
+    function openPetSaveModal(form) {
+        petSaveForm = form;
+        document.getElementById('pet-save-modal').style.display = 'flex';
+    }
+
+    document.getElementById('pet-save-confirm').onclick = function () {
+        if (petSaveForm) {
+            petSaveForm.submit();
+        }
+    };
+
+    document.getElementById('pet-save-cancel').onclick = function () {
+        document.getElementById('pet-save-modal').style.display = 'none';
+        petSaveForm = null;
+    };
+</script>
+
+</body>
+</html>
