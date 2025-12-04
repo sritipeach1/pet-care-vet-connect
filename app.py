@@ -1,178 +1,272 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
-import os
+import uuid
+from datetime import datetime
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "change-this-secret-key"   # change later if you want
-app.config["DATABASE"] = os.path.join("instance", "petcare.db")
+app.secret_key = 'any_secret_word_you_want' 
+DB = "petcare.db"
 
-
-# ----------------- DB helpers -----------------
-
-def get_db():
-    conn = sqlite3.connect(app.config["DATABASE"])
+# Database Connection Helper
+def get_db_connection():   # 
+    conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def init_db():
-    # make sure instance folder exists
-    if not os.path.exists("instance"):
-        os.makedirs("instance")
 
-    conn = get_db()
-    # run schema.sql to (re)create tables
-    with open("schema.sql", "r") as f:
-        conn.executescript(f.read())
-    conn.commit()
+# --- ADMIN MODULE (Feature 3) ---
 
-    # seed a default admin if not exists
-    admin_email = "admin@petconnect.com"
-    admin = conn.execute(
-        "SELECT * FROM users WHERE email = ?", (admin_email,)
-    ).fetchone()
-
-    if not admin:
-        password_hash = generate_password_hash("admin123")  # admin password
-        conn.execute(
-            """
-            INSERT INTO users
-            (name, email, phone, password_hash, role,
-             clinic_name, clinic_location, clinic_license, is_verified)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            ("System Admin", admin_email, None, password_hash, "admin",
-             None, None, None, 1),
-        )
-        conn.commit()
-
+@app.route('/admin_dashboard')
+def admin_dashboard():
+    # 1. Security Check
+    if 'user_id' not in session or session.get('role') != 'admin':
+        flash("Access Denied: Admins only.")
+        return redirect(url_for('login')) 
+    
+    conn = get_db_connection()
+    
+    # 2. Fetch pending clinics using the correct Schema columns
+    # We look for role='clinic' and is_verified=0
+    pending_clinics = conn.execute(
+        'SELECT * FROM users WHERE role = ? AND is_verified = ?', 
+        ('clinic', 0)
+    ).fetchall()
+    
     conn.close()
+    
+    # 3. Render the HTML template
+    return render_template('admin_dashboard.html', clinics=pending_clinics)
+
+@app.route('/approve_clinic/<int:user_id>')
+def approve_clinic(user_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+        
+    conn = get_db_connection()
+    # Update is_verified to 1
+    conn.execute('UPDATE users SET is_verified = 1 WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+    
+    flash("Clinic Approved Successfully!")
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/reject_clinic/<int:user_id>')
+def reject_clinic(user_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+        
+    conn = get_db_connection()
+    # Delete the user from the database
+    conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+    
+    flash("Clinic Rejected.")
+    return redirect(url_for('admin_dashboard'))
+
+# -------------------- FEATURE 11: SUBSCRIPTION & PAYMENT SYSTEM --------------------
+# import sqlite3
+# import uuid
+# from datetime import datetime, timedelta
+# from flask import request, jsonify
 
 
-# create DB file if it doesn't exist yet
-if not os.path.exists(app.config["DATABASE"]):
-    init_db()
+# # Create tables (if not exists)
+# def init_subscription_tables():
+#     conn = sqlite3.connect(DB)
+#     c = conn.cursor()
+
+#     # subscriptions table
+#     c.execute("""
+#         CREATE TABLE IF NOT EXISTS subscriptions (
+#             id TEXT PRIMARY KEY,
+#             user_email TEXT,
+#             plan TEXT,
+#             status TEXT,
+#             start_date TEXT,
+#             end_date TEXT,
+#             created_at TEXT
+#         )
+#     """)
+
+#     # payments table
+#     c.execute("""
+#         CREATE TABLE IF NOT EXISTS payments (
+#             id TEXT PRIMARY KEY,
+#             subscription_id TEXT,
+#             provider TEXT,
+#             amount REAL,
+#             currency TEXT,
+#             status TEXT,
+#             provider_txn_id TEXT,
+#             created_at TEXT
+#         )
+#     """)
+
+#     conn.commit()
+#     conn.close()
 
 
-# ----------------- Routes -----------------
-
-@app.route("/")
-def index():
-    # for now, just go to login page
-    return redirect(url_for("login"))
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    # figure out which type based on ?role=owner or ?role=clinic
-    default_role = request.args.get("role", "owner")
-    if default_role not in ("owner", "clinic"):
-        default_role = "owner"
-
-    if request.method == "POST":
-        name = request.form["name"]
-        email = request.form["email"]
-        phone = request.form["phone"]
-        password = request.form["password"]
-
-        # role comes from hidden field, but we still trust only "owner"/"clinic"
-        role = request.form.get("role", default_role)
-        if role not in ("owner", "clinic"):
-            role = "owner"
-
-        # only clinics have these extra fields
-        clinic_name = request.form.get("clinic_name") if role == "clinic" else None
-        clinic_location = request.form.get("clinic_location") if role == "clinic" else None
-        clinic_license = request.form.get("clinic_license") if role == "clinic" else None
-
-        password_hash = generate_password_hash(password)
-
-        conn = get_db()
-        try:
-            conn.execute(
-                """
-                INSERT INTO users
-                (name, email, phone, password_hash, role,
-                 clinic_name, clinic_location, clinic_license, is_verified)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    name,
-                    email,
-                    phone,
-                    password_hash,
-                    role,
-                    clinic_name,
-                    clinic_location,
-                    clinic_license,
-                    0 if role == "clinic" else 1,  # clinics pending, owners active
-                ),
-            )
-            conn.commit()
-            flash("Registration successful! Please log in.", "success")
-            return redirect(url_for("login"))
-        except sqlite3.IntegrityError:
-            flash("Email already registered.", "danger")
-        finally:
-            conn.close()
-
-    return render_template("register.html", default_role=default_role)
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
-
-        conn = get_db()
-        user = conn.execute(
-            "SELECT * FROM users WHERE email = ?", (email,)
-        ).fetchone()
-        conn.close()
-
-        if user and check_password_hash(user["password_hash"], password):
-            # block unverified clinics
-            if user["role"] == "clinic" and not user["is_verified"]:
-                flash("Your clinic account is pending admin verification.", "warning")
-                return redirect(url_for("login"))
-
-            session["user_id"] = user["id"]
-            session["user_name"] = user["name"]
-            session["role"] = user["role"]
-
-            flash("Login successful!", "success")
-            return redirect(url_for("dashboard"))
-        else:
-            flash("Invalid email or password.", "danger")
-
-    return render_template("login.html")
+# # Run table creation (Flask 3.x safe)
+# with app.app_context():
+#     init_subscription_tables()
 
 
-@app.route("/logout")
-def logout():
-    session.clear()
-    flash("You have been logged out.", "info")
-    return redirect(url_for("login"))
+
+# # -------- 1️⃣ CREATE SUBSCRIPTION (start payment) --------
+# @app.route("/subscriptions/create", methods=["POST"])
+# def create_subscription():
+#     data = request.json
+
+#     user_email = data["user_email"]
+#     plan = data["plan"]     # monthly or yearly
+#     provider = "bkash"
+
+#     if plan not in ["monthly", "yearly"]:
+#         return jsonify({"error": "Invalid plan"})
+
+#     # Determine price
+#     amount = 200 if plan == "monthly" else 2000
+
+#     # Create IDs
+#     subscription_id = uuid.uuid4().hex
+#     payment_id = uuid.uuid4().hex
+
+#     created_at = datetime.utcnow().isoformat()
+
+#     conn = sqlite3.connect(DB)
+#     c = conn.cursor()
+
+#     # Insert subscription (PENDING until payment completes)
+#     c.execute("""
+#         INSERT INTO subscriptions (id, user_email, plan, status, start_date, end_date, created_at)
+#         VALUES (?, ?, ?, 'pending', NULL, NULL, ?)
+#     """, (subscription_id, user_email, plan, created_at))
+
+#     # Insert payment entry (also PENDING)
+#     c.execute("""
+#         INSERT INTO payments (id, subscription_id, provider, amount, currency, status, provider_txn_id, created_at)
+#         VALUES (?, ?, ?, ?, 'BDT', 'pending', NULL, ?)
+#     """, (payment_id, subscription_id, provider, amount, created_at))
+
+#     conn.commit()
+#     conn.close()
+
+#     return jsonify({
+#         "subscription_id": subscription_id,
+#         "payment_id": payment_id,
+#         "amount": amount,
+#         "currency": "BDT",
+#         "status": "pending"
+#     })
 
 
-@app.route("/dashboard")
-def dashboard():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
 
-    role = session.get("role")
+# # -------- 2️⃣ SIMULATE PAYMENT CALLBACK (pretend bKash calls backend) --------
+# @app.route("/payments/simulate_callback", methods=["POST"])
+# def simulate_payment_callback():
+#     data = request.json
 
-    if role == "owner":
-        dashboard_type = "Pet Owner Dashboard (later: pet profile, appointments, history)"
-    elif role == "clinic":
-        dashboard_type = "Vet Clinic Dashboard (later: schedule, bookings, pet records)"
-    elif role == "admin":
-        dashboard_type = "Admin Dashboard (later: approve clinics, monitor system)"
-    else:
-        dashboard_type = "Unknown role"
+#     payment_id = data["payment_id"]
+#     provider_txn_id = data["provider_txn_id"]
+#     status = data["status"]  # paid / failed / cancelled
 
-    return render_template("dashboard.html", dashboard_type=dashboard_type)
+#     if status not in ["paid", "failed", "cancelled"]:
+#         return jsonify({"error": "Invalid payment status"}), 400
+
+#     conn = sqlite3.connect(DB)
+#     conn.row_factory = sqlite3.Row
+#     c = conn.cursor()
+
+#     # Find payment
+#     c.execute("SELECT * FROM payments WHERE id=?", (payment_id,))
+#     payment = c.fetchone()
+
+#     if not payment:
+#         return jsonify({"error": "Payment not found"})
+
+#     subscription_id = payment["subscription_id"]
+
+#     # Update payment row
+#     c.execute("""
+#         UPDATE payments SET status=?, provider_txn_id=?
+#         WHERE id=?
+#     """, (status, provider_txn_id, payment_id))
+
+#     # If payment successful → activate subscription
+#     if status == "paid":
+#         c.execute("SELECT plan FROM subscriptions WHERE id=?", (subscription_id,))
+#         sub = c.fetchone()
+
+#         plan = sub["plan"]
+
+#         start = datetime.utcnow()
+#         end = start + timedelta(days=30 if plan == "monthly" else 365)
+
+#         c.execute("""
+#             UPDATE subscriptions
+#             SET status='active', start_date=?, end_date=?
+#             WHERE id=?
+#         """, (start.isoformat(), end.isoformat(), subscription_id))
+
+#     else:
+#         # failed/cancelled
+#         c.execute("""
+#             UPDATE subscriptions
+#             SET status='cancelled'
+#             WHERE id=?
+#         """, (subscription_id,))
+
+#     conn.commit()
+#     conn.close()
+
+#     return jsonify({"result": "ok", "payment_status": status})
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+
+# # -------- 3️⃣ GET SUBSCRIPTION DETAILS --------
+# @app.route("/subscriptions/<subscription_id>", methods=["GET"])
+# def get_subscription(subscription_id):
+#     conn = sqlite3.connect(DB)
+#     conn.row_factory = sqlite3.Row
+#     c = conn.cursor()
+
+#     c.execute("SELECT * FROM subscriptions WHERE id=?", (subscription_id,))
+#     sub = c.fetchone()
+
+#     conn.close()
+
+#     if not sub:
+#         return jsonify({"error": "Subscription not found"})
+
+#     return jsonify(dict(sub))
+
+
+
+# # -------- 4️⃣ CANCEL SUBSCRIPTION --------
+# @app.route("/subscriptions/<subscription_id>/cancel", methods=["POST"])
+# def cancel_subscription(subscription_id):
+#     conn = sqlite3.connect(DB)
+#     c = conn.cursor()
+
+#     c.execute("SELECT id FROM subscriptions WHERE id=?", (subscription_id,))
+#     row = c.fetchone()
+
+#     if not row:
+#         return jsonify({"error": "Subscription not found"})
+
+#     c.execute("""
+#         UPDATE subscriptions
+#         SET status='cancelled', end_date=?
+#         WHERE id=?
+#     """, (datetime.utcnow().isoformat(), subscription_id))
+
+#     conn.commit()
+#     conn.close()
+
+#     return jsonify({"status": "cancelled", "subscription_id": subscription_id})
+# # -------------------- Run Server --------------------
+# if __name__ == "__main__":
+#     app.run(debug=True, port=1003)
