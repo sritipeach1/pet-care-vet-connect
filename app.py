@@ -89,6 +89,119 @@ def get_or_create_owner_for_current_user():
 
     conn.close()
     return owner
+def get_or_create_clinic_for_current_user():
+    """Return the clinics row for the logged-in clinic user.
+       If it doesn't exist yet, create it from the users table."""
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    clinic = cur.execute(
+        "SELECT * FROM clinics WHERE user_id = ?", (user_id,)
+    ).fetchone()
+
+    if not clinic:
+        user = cur.execute(
+            "SELECT * FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+
+        if not user or user["role"] != "clinic":
+            conn.close()
+            return None
+
+        cur.execute(
+            """
+            INSERT INTO clinics (user_id, name, license_number, email, contact_number, location)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                user["id"],
+                user["clinic_name"] or user["name"],
+                user["clinic_license"] or "",
+                user["email"],
+                user["phone"] or "",
+                user["clinic_location"] or "",
+            ),
+        )
+        conn.commit()
+
+        clinic = cur.execute(
+            "SELECT * FROM clinics WHERE user_id = ?", (user_id,)
+        ).fetchone()
+
+    conn.close()
+    return clinic
+
+
+def build_weekly_schedule_from_form(form):
+    days = [
+        ("Saturday", "sat"),
+        ("Sunday", "sun"),
+        ("Monday", "mon"),
+        ("Tuesday", "tue"),
+        ("Wednesday", "wed"),
+        ("Thursday", "thu"),
+        ("Friday", "fri"),
+    ]
+
+    parts = []
+    for label, key in days:
+        if form.get(f"{key}_enabled"):
+            start = form.get(f"{key}_start")
+            end = form.get(f"{key}_end")
+            if start and end:
+                parts.append(f"{label} {start} - {end}")
+    return "; ".join(parts)
+
+
+def parse_schedule_to_fields(schedule_text):
+    fields = {
+        "sat_start": "", "sat_end": "",
+        "sun_start": "", "sun_end": "",
+        "mon_start": "", "mon_end": "",
+        "tue_start": "", "tue_end": "",
+        "wed_start": "", "wed_end": "",
+        "thu_start": "", "thu_end": "",
+        "fri_start": "", "fri_end": "",
+    }
+
+    if not schedule_text:
+        return fields
+
+    day_map = {
+        "Saturday": "sat",
+        "Sunday": "sun",
+        "Monday": "mon",
+        "Tuesday": "tue",
+        "Wednesday": "wed",
+        "Thursday": "thu",
+        "Friday": "fri",
+    }
+
+    parts = schedule_text.split(";")
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+
+        try:
+            day_name, times = part.split(" ", 1)
+        except ValueError:
+            continue
+
+        key = day_map.get(day_name)
+        if not key or " - " not in times:
+            continue
+
+        start, end = [t.strip() for t in times.split(" - ", 1)]
+        fields[f"{key}_start"] = start
+        fields[f"{key}_end"] = end
+
+    return fields
+
 
 
 # create DB file if it doesn't exist yet
@@ -208,9 +321,8 @@ def dashboard():
         # send owners to Faria's owner dashboard
         return redirect(url_for("owner_dashboard"))
     elif role == "clinic":
-        # clinic dashboard will be plugged in later
-        dashboard_type = "Vet Clinic Dashboard (later: schedule, bookings, pet records)"
-        return render_template("dashboard.html", dashboard_type=dashboard_type)
+        return redirect(url_for("clinic_dashboard"))
+    
     elif role == "admin":
         return redirect(url_for("admin_dashboard"))
     else:
@@ -429,6 +541,180 @@ def edit_owner_profile():
         return redirect(url_for("owner_dashboard", tab="owner"))
 
     return render_template("edit_owner_profile.html", owner=owner)
+# ------------- Clinic Dashboard & Doctors (Faria) -------------
+
+@app.route("/clinic/dashboard")
+def clinic_dashboard():
+    if "user_id" not in session or session.get("role") != "clinic":
+        return redirect(url_for("login"))
+
+    clinic = get_or_create_clinic_for_current_user()
+    if not clinic:
+        flash("Clinic profile not found.", "danger")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    doctors = cur.execute(
+        "SELECT * FROM doctors WHERE clinic_id = ?",
+        (clinic["id"],),
+    ).fetchall()
+    conn.close()
+
+    tab = request.args.get("tab", "doctors")
+    return render_template("clinic_dashboard.html", clinic=clinic, doctors=doctors, tab=tab)
+
+
+@app.route("/clinic/doctors/add", methods=["GET", "POST"])
+def add_doctor_form():
+    if "user_id" not in session or session.get("role") != "clinic":
+        return redirect(url_for("login"))
+
+    clinic = get_or_create_clinic_for_current_user()
+    if not clinic:
+        flash("Clinic profile not found.", "danger")
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        name = request.form["name"]
+        email = request.form["email"]
+        base_fee = request.form["base_fee"]
+        qualifications = request.form["qualifications"]
+
+        weekly_schedule = build_weekly_schedule_from_form(request.form)
+
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO doctors (clinic_id, name, email, base_fee, qualifications, rating, weekly_schedule)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (clinic["id"], name, email, base_fee, qualifications, 0, weekly_schedule),
+        )
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("clinic_dashboard", tab="doctors"))
+
+    return render_template("add_doctor.html")
+
+
+@app.route("/clinic/doctors/<int:doctor_id>/edit", methods=["GET", "POST"])
+def edit_doctor_form(doctor_id):
+    if "user_id" not in session or session.get("role") != "clinic":
+        return redirect(url_for("login"))
+
+    clinic = get_or_create_clinic_for_current_user()
+    if not clinic:
+        flash("Clinic profile not found.", "danger")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    doctor = cur.execute(
+        "SELECT * FROM doctors WHERE id = ? AND clinic_id = ?",
+        (doctor_id, clinic["id"]),
+    ).fetchone()
+
+    if not doctor:
+        conn.close()
+        flash("Doctor not found.", "warning")
+        return redirect(url_for("clinic_dashboard", tab="doctors"))
+
+    if request.method == "POST":
+        name = request.form["name"]
+        email = request.form["email"]
+        base_fee = request.form["base_fee"]
+        qualifications = request.form["qualifications"]
+
+        old_schedule = doctor["weekly_schedule"] or ""
+        new_schedule = build_weekly_schedule_from_form(request.form)
+        final_schedule = new_schedule if new_schedule else old_schedule
+
+        cur.execute(
+            """
+            UPDATE doctors
+            SET name = ?, email = ?, base_fee = ?, qualifications = ?, weekly_schedule = ?
+            WHERE id = ? AND clinic_id = ?
+            """,
+            (name, email, base_fee, qualifications, final_schedule, doctor_id, clinic["id"]),
+        )
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("clinic_dashboard", tab="doctors"))
+
+    schedule_fields = parse_schedule_to_fields(doctor["weekly_schedule"] or "")
+    conn.close()
+
+    return render_template("edit_doctor.html", doctor=doctor, schedule=schedule_fields)
+
+
+@app.route("/clinic/doctors/<int:doctor_id>/delete", methods=["POST"])
+def delete_doctor_from_dashboard(doctor_id):
+    if "user_id" not in session or session.get("role") != "clinic":
+        return redirect(url_for("login"))
+
+    clinic = get_or_create_clinic_for_current_user()
+    if not clinic:
+        flash("Clinic profile not found.", "danger")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM doctors WHERE id = ? AND clinic_id = ?",
+        (doctor_id, clinic["id"]),
+    )
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("clinic_dashboard", tab="doctors"))
+
+
+@app.route("/clinic/profile/edit", methods=["GET", "POST"])
+def edit_clinic_profile():
+    if "user_id" not in session or session.get("role") != "clinic":
+        return redirect(url_for("login"))
+
+    clinic = get_or_create_clinic_for_current_user()
+    if not clinic:
+        flash("Clinic profile not found.", "danger")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    if request.method == "POST":
+        name = request.form["name"]
+        license_number = request.form["license_number"]
+        email = request.form["email"]
+        contact_number = request.form["contact_number"]
+        location = request.form["location"]
+
+        cur.execute(
+            """
+            UPDATE clinics
+            SET name = ?, license_number = ?, email = ?, contact_number = ?, location = ?
+            WHERE id = ?
+            """,
+            (name, license_number, email, contact_number, location, clinic["id"]),
+        )
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("clinic_dashboard", tab="profile"))
+
+    # GET – reload latest data
+    clinic = cur.execute(
+        "SELECT * FROM clinics WHERE id = ?",
+        (clinic["id"],),
+    ).fetchone()
+    conn.close()
+
+    return render_template("edit_clinic_profile.html", clinic=clinic)
 
 if __name__ == "__main__":
     app.run(debug=True)
