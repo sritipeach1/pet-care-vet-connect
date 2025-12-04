@@ -350,7 +350,7 @@ def admin_dashboard():
     conn.close()
     
     # 3. Render the HTML template
-    return render_template('admin_dashboard.html', clinics=pending_clinics)
+    return render_template('admin_dashboard.html', clinics=pending_clinics, wide_mode=True)
 
 @app.route('/approve_clinic/<int:user_id>')
 def approve_clinic(user_id):
