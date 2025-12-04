@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Pet</title>
+
+    <style>
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.25);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        .modal-card {
+            background: #f4f9ff;
+            border-radius: 18px;
+            padding: 18px 22px;
+            min-width: 260px;
+            max-width: 340px;
+            border: 1px solid #c9dfff;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+            text-align: center;
+        }
+        .modal-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1565c0;
+        }
+        .modal-text {
+            font-size: 13px;
+            color: #4a5f80;
+            margin-bottom: 14px;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .modal-btn-danger,
+        .modal-btn-cancel {
+            padding: 6px 14px;
+            border-radius: 16px;
+            border: none;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .modal-btn-danger {
+            background: #1e88e5;
+            color: #ffffff;
+        }
+        .modal-btn-cancel {
+            background: #e3e3e3;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body style="background-color: #e8f6ff; font-family: 'Segoe UI', Arial, sans-serif;">
+
+    <div style="max-width: 550px; margin: 30px auto; background: #f4f9ff;
+                border-radius: 20px; padding: 20px 24px;
+                box-shadow: 0 8px 18px rgba(0,0,0,0.05);">
+
+        <h1 style="font-size: 20px; color: #1565c0; margin-top: 0;">
+            Edit Pet
+        </h1>
+        <p style="font-size: 13px; color: #6d88a8; margin-top: 4px;">
+            Update your pet's details. Age can be written as text (e.g. 2 years, 8 months).
+        </p>
+
+        {% if pet %}
+        
+        <form method="post"
+            onsubmit="event.preventDefault(); openPetEditModal(this);"
+            style="margin-top: 10px;">
+
+            <div style="margin-bottom: 10px;">
+                <label>Pet Name:</label><br>
+                <input type="text" name="name" required
+                       value="{{ pet['name'] }}"
+                       style="width: 100%; padding: 6px 8px; border-radius: 10px; border: 1px solid #c5d7f2;">
+            </div>
+
+            <div style="margin-bottom: 10px;">
+                <label>Age:</label><br>
+                <input type="text" name="age" required
+                       value="{{ pet['age'] }}"
+                       style="width: 100%; padding: 6px 8px; border-radius: 10px; border: 1px solid #c5d7f2;">
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label>Animal Type:</label><br>
+                <select name="animal_type"
+                        style="width: 100%; padding: 6px 8px; border-radius: 10px; border: 1px solid #c5d7f2;">
+                    <option value="Dog" {% if pet['animal_type'] == 'Dog' %}selected{% endif %}>Dog</option>
+                    <option value="Cat" {% if pet['animal_type'] == 'Cat' %}selected{% endif %}>Cat</option>
+                    <option value="Bird" {% if pet['animal_type'] == 'Bird' %}selected{% endif %}>Bird</option>
+                    <option value="Rabbit" {% if pet['animal_type'] == 'Rabbit' %}selected{% endif %}>Rabbit</option>
+                    <option value="Other" {% if pet['animal_type'] == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label>Breed:</label><br>
+                <input type="text" name="breed" required
+                       value="{{ pet['breed'] }}"
+                       style="width: 100%; padding: 6px 8px; border-radius: 10px; border: 1px solid #c5d7f2;">
+            </div>
+
+            <div style="margin-bottom: 10px;">
+                <label>Gender:</label><br>
+                <select name="gender"
+                        style="width: 100%; padding: 6px 8px; border-radius: 10px; border: 1px solid #c5d7f2;">
+                    <option value="Male" {% if pet['gender'] == 'Male' %}selected{% endif %}>Male</option>
+                    <option value="Female" {% if pet['gender'] == 'Female' %}selected{% endif %}>Female</option>
+                    <option value="Other" {% if pet['gender'] == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <label>Vaccination Status:</label><br>
+                <select name="vaccination_status"
+                        style="width: 100%; padding: 6px 8px; border-radius: 10px; border: 1px solid #c5d7f2;">
+                    <option value="Completed" {% if pet['vaccination_status'] == 'Completed' %}selected{% endif %}>Completed</option>
+                    <option value="Pending" {% if pet['vaccination_status'] == 'Pending' %}selected{% endif %}>Pending</option>
+                </select>
+            </div>
+
+            <button type="submit"
+                    style="padding: 7px 18px; border-radius: 999px; border: none;
+                           background-color: #1e88e5; color: white; font-size: 13px;">
+                Save Changes
+            </button>
+
+            <a href="{{ url_for('owner_dashboard') }}"
+               style="margin-left: 8px; font-size: 13px; text-decoration: none; color: #1565c0;">
+                Cancel
+            </a>
+        </form>
+        {% else %}
+            <p>Pet not found.</p>
+        {% endif %}
+    </div>
+<!-- Cute confirmation modal for editing a pet -->
+<!-- Cute confirmation modal for editing a pet -->
+<div id="pet-edit-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+        <div class="modal-title">Save Changes?</div>
+        <div class="modal-text">
+            The updated details will replace the current information for this pet.
+        </div>
+        <div class="modal-buttons">
+            <button id="pet-edit-confirm" class="modal-btn-danger">Save</button>
+            <button id="pet-edit-cancel" class="modal-btn-cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let petEditForm = null;
+
+    function openPetEditModal(form) {
+        petEditForm = form;
+        document.getElementById('pet-edit-modal').style.display = 'flex';
+    }
+
+    document.getElementById('pet-edit-confirm').onclick = function () {
+        if (petEditForm) {
+            petEditForm.submit();
+        }
+    };
+
+    document.getElementById('pet-edit-cancel').onclick = function () {
+        document.getElementById('pet-edit-modal').style.display = 'none';
+        petEditForm = null;
+    };
+</script>
+
+
+</body>
+</html>

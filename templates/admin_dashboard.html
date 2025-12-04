@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="text-center mb-6">
+    <h2 class="text-3xl font-bold text-pink-600">Admin Dashboard</h2>
+    <p class="text-gray-600">Manage pending vet clinic verifications</p>
+</div>
+
+<div class="overflow-x-auto">
+    <table class="min-w-full leading-normal">
+        <thead>
+            <tr class="bg-pink-50 text-pink-700 text-sm uppercase">
+                <th class="px-5 py-3 border-b-2 border-pink-200 text-left">Clinic Name</th>
+                <th class="px-5 py-3 border-b-2 border-pink-200 text-left">Email</th>
+                <th class="px-5 py-3 border-b-2 border-pink-200 text-left">Location</th>
+                <th class="px-5 py-3 border-b-2 border-pink-200 text-left">License</th>
+                <th class="px-5 py-3 border-b-2 border-pink-200 text-center">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if clinics %}
+                {% for clinic in clinics %}
+                <tr class="hover:bg-gray-50 border-b border-gray-200">
+                    <td class="px-5 py-5 text-sm font-bold">{{ clinic['clinic_name'] }}</td>
+                    <td class="px-5 py-5 text-sm">{{ clinic['email'] }}</td>
+                    <td class="px-5 py-5 text-sm">{{ clinic['clinic_location'] }}</td>
+                    <td class="px-5 py-5 text-sm">{{ clinic['clinic_license'] }}</td>
+                    <td class="px-5 py-5 text-sm text-center">
+                        <a href="{{ url_for('approve_clinic', user_id=clinic['id']) }}" class="text-green-600 hover:text-green-900 font-bold mr-3">Approve</a>
+                        <a href="{{ url_for('reject_clinic', user_id=clinic['id']) }}" class="text-red-600 hover:text-red-900 font-bold" onclick="return confirm('Reject?');">Reject</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="5" class="px-5 py-5 text-center text-gray-500">No pending applications.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
