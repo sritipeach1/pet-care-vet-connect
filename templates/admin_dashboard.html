@@ -1,42 +1,80 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="text-center mb-6">
-    <h2 class="text-3xl font-bold text-pink-600">Admin Dashboard</h2>
-    <p class="text-gray-600">Manage pending vet clinic verifications</p>
+<div class="text-center mb-8">
+    <h2 class="text-3xl font-bold text-pink-600">Vet Clinic Admin Panel</h2>
+    <p class="text-gray-500">manage vet clinic applications</p>
 </div>
 
-<div class="overflow-x-auto">
-    <table class="min-w-full leading-normal">
-        <thead>
-            <tr class="bg-pink-50 text-pink-700 text-sm uppercase">
-                <th class="px-5 py-3 border-b-2 border-pink-200 text-left">Clinic Name</th>
-                <th class="px-5 py-3 border-b-2 border-pink-200 text-left">Email</th>
-                <th class="px-5 py-3 border-b-2 border-pink-200 text-left">Location</th>
-                <th class="px-5 py-3 border-b-2 border-pink-200 text-left">License</th>
-                <th class="px-5 py-3 border-b-2 border-pink-200 text-center">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if clinics %}
-                {% for clinic in clinics %}
-                <tr class="hover:bg-gray-50 border-b border-gray-200">
-                    <td class="px-5 py-5 text-sm font-bold">{{ clinic['clinic_name'] }}</td>
-                    <td class="px-5 py-5 text-sm">{{ clinic['email'] }}</td>
-                    <td class="px-5 py-5 text-sm">{{ clinic['clinic_location'] }}</td>
-                    <td class="px-5 py-5 text-sm">{{ clinic['clinic_license'] }}</td>
-                    <td class="px-5 py-5 text-sm text-center">
-                        <a href="{{ url_for('approve_clinic', user_id=clinic['id']) }}" class="text-green-600 hover:text-green-900 font-bold mr-3">Approve</a>
-                        <a href="{{ url_for('reject_clinic', user_id=clinic['id']) }}" class="text-red-600 hover:text-red-900 font-bold" onclick="return confirm('Reject?');">Reject</a>
+<div class="bg-white shadow-md rounded-lg mb-6 p-6 border-l-4 border-pink-500">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold text-gray-800">Pending Applications</h3>
+        <span class="bg-pink-100 text-pink-600 py-1 px-3 rounded-full text-xs font-bold uppercase">Needs Review</span>
+    </div>
+    
+    {% if pending %}
+        <table class="min-w-full text-left">
+            <tbody class="divide-y divide-gray-100">
+                {% for clinic in pending %}
+                <tr>
+                    <td class="py-3 font-medium text-gray-700">{{ clinic['clinic_name'] or clinic['name'] }}</td>
+                    <td class="py-3 text-gray-500 text-sm">{{ clinic['email'] }}</td>
+                    <td class="py-3 text-right">
+                        <a href="{{ url_for('approve_clinic', user_id=clinic['id']) }}" class="text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-full text-xs font-bold mr-2">Approve</a>
+                        <a href="{{ url_for('reject_clinic', user_id=clinic['id']) }}" class="text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded-full text-xs font-bold">Reject</a>
                     </td>
                 </tr>
                 {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="5" class="px-5 py-5 text-center text-gray-500">No pending applications.</td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    {% else %}
+        <p class="text-gray-400 italic text-sm">No pending applications.</p>
+    {% endif %}
+</div>
+
+<div class="bg-white shadow-md rounded-lg mb-6 p-6 border-l-4 border-green-500">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold text-gray-800">Approved Clinics</h3>
+        <span class="bg-green-100 text-green-600 py-1 px-3 rounded-full text-xs font-bold uppercase">Active</span>
+    </div>
+    
+    {% if approved %}
+    <ul class="list-disc pl-5 text-gray-600">
+        {% for clinic in approved %}
+        <li>{{ clinic['clinic_name'] or clinic['name'] }} <span class="text-xs text-gray-400">({{ clinic['clinic_location'] }})</span></li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-gray-400 italic text-sm">No active clinics yet.</p>
+    {% endif %}
+</div>
+
+<div class="bg-white shadow-md rounded-lg p-6 border-l-4 border-red-500">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold text-gray-800">Rejected Applications</h3>
+        <span class="bg-red-100 text-red-600 py-1 px-3 rounded-full text-xs font-bold uppercase">Declined</span>
+    </div>
+    
+    {% if rejected %}
+    <ul class="list-disc pl-5 text-gray-600">
+        {% for clinic in rejected %}
+        <li>{{ clinic['clinic_name'] or clinic['name'] }} <span class="text-xs text-gray-400">({{ clinic['email'] }})</span></li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-gray-400 italic text-sm">No rejected applications.</p>
+    {% endif %}
+</div>
+
+<div class="grid grid-cols-3 gap-4 mt-8">
+    <div class="bg-pink-700 text-white text-center py-2 rounded-full font-bold shadow-lg">
+        Pending ({{ pending|length }})
+    </div>
+    <div class="bg-purple-600 text-white text-center py-2 rounded-full font-bold shadow-lg">
+        Approved ({{ approved|length }})
+    </div>
+    <div class="bg-gray-700 text-white text-center py-2 rounded-full font-bold shadow-lg">
+        Rejected ({{ rejected|length }})
+    </div>
 </div>
 {% endblock %}

@@ -223,22 +223,29 @@ def dashboard():
 def admin_dashboard():
     # 1. Security Check
     if 'user_id' not in session or session.get('role') != 'admin':
-        flash("Access Denied: Admins only.")
+        flash("Access Denied: Admins only.", "danger")
         return redirect(url_for('login')) 
     
     conn = get_db()
     
-    # 2. Fetch pending clinics using the correct Schema columns
-    # We look for role='clinic' and is_verified=0
-    pending_clinics = conn.execute(
-        'SELECT * FROM users WHERE role = ? AND is_verified = ?', 
-        ('clinic', 0)
-    ).fetchall()
+    # 2. Fetch lists for all 3 categories
+    # Pending (is_verified = 0)
+    pending = conn.execute('SELECT * FROM users WHERE role=? AND is_verified=?', ('clinic', 0)).fetchall()
+    
+    # Approved (is_verified = 1)
+    approved = conn.execute('SELECT * FROM users WHERE role=? AND is_verified=?', ('clinic', 1)).fetchall()
+    
+    # Rejected (is_verified = 2)
+    rejected = conn.execute('SELECT * FROM users WHERE role=? AND is_verified=?', ('clinic', 2)).fetchall()
     
     conn.close()
     
-    # 3. Render the HTML template
-    return render_template('admin_dashboard.html', clinics=pending_clinics, wide_mode=True)
+    # 3. Render template with ALL lists
+    return render_template('admin_dashboard.html', 
+                           pending=pending, 
+                           approved=approved, 
+                           rejected=rejected,
+                           wide_mode=True)
 
 @app.route('/approve_clinic/<int:user_id>')
 def approve_clinic(user_id):
@@ -260,12 +267,13 @@ def reject_clinic(user_id):
         return redirect(url_for('login'))
         
     conn = get_db()
-    # Delete the user from the database
-    conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    # CHANGE: Update status to 2 (Rejected) instead of DELETE
+    # 0 = Pending, 1 = Approved, 2 = Rejected
+    conn.execute('UPDATE users SET is_verified = 2 WHERE id = ?', (user_id,)) 
     conn.commit()
     conn.close()
     
-    flash("Clinic Rejected.")
+    flash("Clinic application marked as Rejected.", "warning")
     return redirect(url_for('admin_dashboard'))
 
 # ------------- Faria: Owner Dashboard & Pets -------------
