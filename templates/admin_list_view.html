@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <a href="{{ url_for('admin_dashboard') }}" class="inline-block bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded mb-6 transition">
+        &larr; Back to Dashboard
+    </a>
+
+    <h2 class="text-3xl font-bold mb-6 capitalize text-pink-600">{{ status }} Clinics List</h2>
+
+    {% if users %}
+        <div class="grid gap-6">
+            {% for user in users %}
+            <div class="bg-white shadow-md rounded-lg p-6 border-l-4 {% if status == 'approved' %}border-green-500{% elif status == 'rejected' %}border-red-500{% else %}border-pink-500{% endif %}">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-800">{{ user['clinic_name'] or user['name'] }}</h3>
+                        <p class="text-sm text-gray-500">ID: {{ user['id'] }}</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold uppercase 
+                        {% if user['is_verified'] == 1 %}bg-green-100 text-green-600
+                        {% elif user['is_verified'] == 2 %}bg-red-100 text-red-600
+                        {% else %}bg-pink-100 text-pink-600{% endif %}">
+                        {% if user['is_verified'] == 1 %}Active{% elif user['is_verified'] == 2 %}Declined{% else %}Needs Review{% endif %}
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 text-gray-700 border-t pt-4">
+                    <div>
+                        <p class="mb-1"><span class="font-bold">Owner:</span> {{ user['name'] }}</p>
+                        <p class="mb-1 break-all"><span class="font-bold">Email:</span> {{ user['email'] }}</p>
+                        <p class="mb-1"><span class="font-bold">Phone:</span> {{ user['phone'] }}</p>
+                    </div>
+                    <div>
+                        <p class="mb-1"><span class="font-bold">Location:</span> {{ user['clinic_location'] or 'N/A' }}</p>
+                        <p class="mb-1"><span class="font-bold">License:</span> {{ user['clinic_license'] or 'N/A' }}</p>
+                    </div>
+                </div>
+
+                {% if status == 'pending' %}
+                <div class="mt-6 flex gap-3 border-t pt-4">
+                    <a href="{{ url_for('approve_clinic', user_id=user['id']) }}" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-full transition shadow">
+                        Approve
+                    </a>
+                    <a href="{{ url_for('reject_clinic', user_id=user['id']) }}" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-full transition shadow">
+                        Reject
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="flex justify-center items-center mt-10 space-x-4">
+            {% if page > 1 %}
+            <a href="{{ url_for('admin_view_list', status=status, page=page-1) }}" class="bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded hover:bg-gray-100 transition">
+                Previous
+            </a>
+            {% else %}
+            <span class="bg-gray-100 border border-gray-200 text-gray-400 font-bold py-2 px-4 rounded cursor-not-allowed">
+                Previous
+            </span>
+            {% endif %}
+
+            <span class="text-gray-600 font-medium">Page {{ page }} of {{ total_pages }}</span>
+
+            {% if page < total_pages %}
+            <a href="{{ url_for('admin_view_list', status=status, page=page+1) }}" class="bg-white border border-gray-300 text-gray-700 font-bold py-2 px-4 rounded hover:bg-gray-100 transition">
+                Next
+            </a>
+            {% else %}
+            <span class="bg-gray-100 border border-gray-200 text-gray-400 font-bold py-2 px-4 rounded cursor-not-allowed">
+                Next
+            </span>
+            {% endif %}
+        </div>
+
+    {% else %}
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-6 text-blue-700 rounded shadow-sm" role="alert">
+            <p class="font-bold">No clinics found.</p>
+            <p>There are no clinics in the {{ status }} category right now.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
