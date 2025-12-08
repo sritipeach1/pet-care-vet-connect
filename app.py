@@ -30,7 +30,7 @@ def init_db():
     conn.commit()
 
     # seed a default admin if not exists
-    admin_email = "admin@petconnect.com"
+    admin_email = "admin@petcare.com"
     admin = conn.execute(
         "SELECT * FROM users WHERE email = ?", (admin_email,)
     ).fetchone()
@@ -723,6 +723,49 @@ def edit_clinic_profile():
     conn.close()
 
     return render_template("edit_clinic_profile.html", clinic=clinic)
+# --- MISSING ROUTE FOR ADMIN LIST VIEW ---
 
+@app.route('/admin/view_list/<status>')
+def admin_view_list(status):
+    # 1. Security Check
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+
+    # 2. Convert word "approved" to number 1, etc.
+    status_map = {'pending': 0, 'approved': 1, 'rejected': 2}
+    if status not in status_map:
+        flash("Invalid list type", "danger")
+        return redirect(url_for('admin_dashboard'))
+    
+    ver_code = status_map[status]
+
+    # 3. Pagination Logic
+    page = request.args.get('page', 1, type=int) 
+    per_page = 5                                 
+    offset = (page - 1) * per_page               
+    
+    conn = get_db()
+    
+    # Fetch users for this page
+    users = conn.execute(
+        'SELECT * FROM users WHERE role="clinic" AND is_verified=? LIMIT ? OFFSET ?',
+        (ver_code, per_page, offset)
+    ).fetchall()
+    
+    # Count TOTAL users for buttons
+    total_users = conn.execute(
+        'SELECT COUNT(*) FROM users WHERE role="clinic" AND is_verified=?',
+        (ver_code,)
+    ).fetchone()[0]
+    conn.close()
+    
+    # Calculate total pages
+    total_pages = (total_users + per_page - 1) // per_page
+    
+    return render_template('admin_list_view.html', 
+                           users=users, 
+                           status=status, 
+                           page=page, 
+                           total_pages=total_pages)
 if __name__ == "__main__":
     app.run(debug=True)

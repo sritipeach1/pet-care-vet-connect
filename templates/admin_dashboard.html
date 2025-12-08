@@ -67,14 +67,19 @@
 </div>
 
 <div class="grid grid-cols-3 gap-4 mt-8">
-    <div class="bg-pink-700 text-white text-center py-2 rounded-full font-bold shadow-lg">
-        Pending ({{ pending|length }})
-    </div>
-    <div class="bg-purple-600 text-white text-center py-2 rounded-full font-bold shadow-lg">
-        Approved ({{ approved|length }})
-    </div>
-    <div class="bg-gray-700 text-white text-center py-2 rounded-full font-bold shadow-lg">
-        Rejected ({{ rejected|length }})
-    </div>
+    <a href="{{ url_for('admin_view_list', status='pending') }}" 
+       class="block bg-pink-700 hover:bg-pink-800 text-white text-center py-2 rounded-full font-bold shadow-lg transition duration-200">
+        View Pending ({{ pending|length }})
+    </a>
+
+    <a href="{{ url_for('admin_view_list', status='approved') }}" 
+       class="block bg-purple-600 hover:bg-purple-700 text-white text-center py-2 rounded-full font-bold shadow-lg transition duration-200">
+        View Approved ({{ approved|length }})
+    </a>
+
+    <a href="{{ url_for('admin_view_list', status='rejected') }}" 
+       class="block bg-gray-700 hover:bg-gray-800 text-white text-center py-2 rounded-full font-bold shadow-lg transition duration-200">
+        View Rejected ({{ rejected|length }})
+    </a>
 </div>
 {% endblock %}
