@@ -1,487 +1,112 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Vet Clinic Dashboard</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: "Segoe UI", Arial, sans-serif;
-            background: linear-gradient(135deg, #ffeaf5, #fff5fb);
-        }
-        .page {
-            max-width: 1100px;
-            margin: 24px auto 40px;
-            background: #ffeef8;
-            border-radius: 28px;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.06);
-            padding: 24px 30px 32px;
-        }
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 18px;
-        }
-        .brand-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .logo-circle {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 30% 20%, #ffffff, #ffb3d9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-        .brand {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .brand-title {
-            font-size: 20px;
-            font-weight: 650;
-            color: #c2185b;
-        }
-        .brand-subtitle {
-            font-size: 13px;
-            color: #d376a3;
-        }
-        .logout-btn {
-            padding: 6px 18px;
-            border-radius: 20px;
-            border: 1px solid #e1a5c7;
-            background: #ffffff;
-            cursor: pointer;
-            font-size: 13px;
-            color: #8d3b68;
-        }
+{% extends "base.html" %}
 
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin: 6px 0 20px;
-        }
-        .tab {
-            padding: 6px 18px;
-            border-radius: 999px;
-            border: none;
-            background: #ffd1e8;
-            font-size: 13px;
-            cursor: pointer;
-            color: #8f4c70;
-        }
-        .tab.active {
-            background: #ff4f9a;
-            color: #ffffff;
-            box-shadow: 0 4px 10px rgba(255,79,154,0.4);
-        }
+{% block content %}
 
-        h2 {
-            font-size: 18px;
-            margin: 16px 0 4px;
-            color: #c2185b;
-        }
-        .subtitle {
-            font-size: 13px;
-            color: #b07e9d;
-        }
+<div class="flex flex-col md:flex-row justify-between items-center mb-8">
+    <div class="text-center md:text-left">
+        <h2 class="text-3xl font-bold text-pink-600">Vet Clinic Dashboard</h2>
+        <p class="text-gray-500">Welcome, {{ clinic['name'] }}</p>
+    </div>
+    <a href="{{ url_for('logout') }}" class="mt-4 md:mt-0 border border-pink-300 text-pink-600 hover:bg-pink-50 px-6 py-2 rounded-full transition">
+        Logout
+    </a>
+</div>
 
-        .profile-card {
-            background: #fffdfb;
-            border-radius: 20px;
-            padding: 16px 20px;
-            border: 1px dashed #f0bfd9;
-            margin-bottom: 22px;
-        }
-        .profile-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 6px 24px;
-        }
-        .field-label {
-            font-weight: 600;
-            font-size: 13px;
-            color: #8c4b6e;
-        }
-        .field-value {
-            font-size: 14px;
-            margin-top: 2px;
-        }
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <a href="{{ url_for('clinic_dashboard', tab='profile') }}" 
+       class="block text-center py-3 rounded-lg font-bold shadow-md transition {{ 'bg-pink-600 text-white' if tab == 'profile' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
+        🏥 Clinic Profile
+    </a>
+    
+    <a href="{{ url_for('clinic_dashboard', tab='doctors') }}" 
+       class="block text-center py-3 rounded-lg font-bold shadow-md transition {{ 'bg-pink-600 text-white' if tab == 'doctors' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
+        👨‍⚕️ Manage Doctors
+    </a>
 
-        .section-title-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 4px;
-            margin-bottom: 10px;
-        }
-        .add-btn {
-            display: inline-block;
-            padding: 7px 18px;
-            border-radius: 999px;
-            background: linear-gradient(135deg, #ff4f9a, #ff80c2);
-            color: white;
-            text-decoration: none;
-            font-size: 13px;
-            border: none;
-            box-shadow: 0 4px 12px rgba(255,79,154,0.4);
-        }
+    <a href="{{ url_for('clinic_reports') }}" 
+       class="block text-center py-3 rounded-lg font-bold shadow-md bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200">
+        📊 View Analytics
+    </a>
+</div>
 
-        .doctor-list {
-            list-style: none;
-            padding: 0;
-            margin: 10px 0 0;
-        }
-        .doctor-card {
-            background: linear-gradient(135deg, #fffaf2, #ffe8c9);
-            border-radius: 22px;
-            border: 1px solid #ffd7b0;
-            padding: 14px 18px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            gap: 16px;
-        }
-        .doctor-left {
-            flex: 2;
-        }
-        .doctor-right {
-            flex: 1.2;
-            border-left: 1px dashed #f2c7a2;
-            padding-left: 12px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .doctor-name {
-            font-weight: 600;
-            margin-bottom: 2px;
-        }
-        .doctor-email {
-            font-size: 13px;
-            color: #d376a3;
-            margin-bottom: 4px;
-        }
-        .doctor-text {
-            font-size: 13px;
-            margin: 2px 0;
-        }
+<div class="bg-white shadow-md rounded-lg p-6 border-l-4 border-pink-500 min-h-[500px]">
 
-        .slot-label {
-            font-size: 13px;
-            margin-bottom: 4px;
-            font-weight: 600;
-            color: #9c6b40;
-        }
-        .slot-line {
-            margin-bottom: 4px;
-        }
-        .slot-day {
-            font-size: 12px;
-            background: #f7e2ff;
-            border-radius: 16px;
-            padding: 3px 10px;
-            display: inline-block;
-        }
-        .slot-time {
-            font-size: 12px;
-            margin-left: 6px;
-        }
-
-        .actions {
-            margin-top: 6px;
-        }
-        .btn-edit, .btn-delete {
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 12px;
-            border: none;
-            cursor: pointer;
-            color: #fff;
-            margin-right: 4px;
-        }
-        .btn-edit {
-            background: #ff7fd8;
-        }
-        .btn-delete {
-            background: #ff4f4f;
-        }
-
-        .empty-state {
-            font-size: 13px;
-            color: #a07a8b;
-            margin-top: 8px;
-        }
-
-        /* Sections hidden/shown by tabs */
-        #clinic-section, #doctors-section {
-            display: none;
-        }
-        #clinic-section.active-section,
-        #doctors-section.active-section {
-            display: block;
-        }
-    </style>
-</head>
-<body>
-
-<div class="page">
-
-        <div class="top-bar">
-            <div class="brand-left">
-                <div class="logo-circle">🐾</div>
-                <div class="brand">
-                    <div class="brand-title">Vet Clinic Dashboard</div>
-                    <div class="brand-subtitle">{{ clinic['name'] if clinic else 'AnimedCare' }}</div>
-                </div>
-            </div>
-            <button class="logout-btn" type="button"
-                    onclick="window.location.href='{{ url_for('logout') }}'">
-                Logout
-            </button>
+    {% if tab == 'doctors' %}
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-800">Doctor Profiles</h3>
+            <a href="{{ url_for('add_doctor_form') }}" class="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-full font-bold shadow-lg transition flex items-center gap-2">
+                <span class="text-xl">+</span> Add Doctor
+            </a>
         </div>
 
+        {% if doctors %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for doctor in doctors %}
+                <div class="border border-gray-200 rounded-xl p-6 hover:shadow-xl transition bg-gray-50 relative">
+                    <span class="absolute top-4 right-4 bg-pink-100 text-pink-600 text-xs font-bold px-2 py-1 rounded">
+                        {{ doctor['qualifications'] }}
+                    </span>
 
-
-    <!-- Tabs -->
-    <div class="tabs">
-        <button id="tab-clinic" class="tab active" type="button"
-                onclick="showClinicTab('clinic')">Clinic Profile</button>
-        <button id="tab-doctors" class="tab" type="button"
-                onclick="showClinicTab('doctors')">Manage Doctors</button>
-    </div>
-
-    <!-- CLINIC PROFILE SECTION -->
-    <div id="clinic-section" class="active-section">
-        <div class="section-title-row">
-            <div>
-                <h2 style="margin-bottom: 2px;">Clinic Profile</h2>
-                <div class="subtitle">Keep your clinic details up to date</div>
+                    <h4 class="text-xl font-bold text-gray-800 mb-1">{{ doctor['name'] }}</h4>
+                    <p class="text-sm text-gray-500 mb-4">{{ doctor['email'] }}</p>
+                    
+                    <div class="flex justify-between items-center mb-4 bg-white p-2 rounded-lg border border-gray-100">
+                        <span class="text-xs font-bold text-gray-400 uppercase">Fee</span>
+                        <span class="text-lg font-bold text-blue-600">৳{{ doctor['base_fee'] }}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="{{ url_for('edit_doctor_form', doctor_id=doctor['id']) }}" 
+                           class="text-center bg-white border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 font-bold transition">
+                            Edit
+                        </a>
+                        <form action="{{ url_for('delete_doctor_from_dashboard', doctor_id=doctor['id']) }}" method="POST" onsubmit="return confirm('Delete Dr. {{ doctor.name }}?');">
+                            <button type="submit" class="w-full bg-red-50 border border-red-100 text-red-600 py-2 rounded-lg hover:bg-red-100 font-bold transition">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-            <a href="{{ url_for('edit_clinic_profile') }}" class="add-btn">
+        {% else %}
+            <div class="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                <h3 class="text-xl font-bold text-gray-600">No doctors yet</h3>
+                <p class="text-gray-400 mb-4">Add your first doctor to get started.</p>
+            </div>
+        {% endif %}
+
+    {% elif tab == 'profile' %}
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-gray-800">Clinic Details</h3>
+            <a href="{{ url_for('edit_clinic_profile') }}" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-full font-bold transition">
                 Edit Profile
             </a>
         </div>
 
-        <div class="profile-card">
-            {% if clinic %}
-                <div class="profile-row">
-                    <div>
-                        <div class="field-label">Clinic Name</div>
-                        <div class="field-value">{{ clinic['name'] }}</div>
-                    </div>
-                    <div>
-                        <div class="field-label">License Number</div>
-                        <div class="field-value">{{ clinic['license_number'] }}</div>
-                    </div>
-                    <div>
-                        <div class="field-label">Email</div>
-                        <div class="field-value">{{ clinic['email'] }}</div>
-                    </div>
-                    <div>
-                        <div class="field-label">Contact Number</div>
-                        <div class="field-value">{{ clinic['contact_number'] }}</div>
-                    </div>
-                    <div>
-                        <div class="field-label">Location</div>
-                        <div class="field-value">{{ clinic['location'] }}</div>
-                    </div>
-                </div>
-            {% else %}
-                <p>No clinic found in the database.</p>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- DOCTORS SECTION -->
-    <div id="doctors-section">
-        <div class="section-title-row">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-8 rounded-xl border border-gray-200">
             <div>
-                <h2 style="margin-bottom: 2px;">Doctor Profiles</h2>
-                <div class="subtitle">Add and manage doctors in your clinic</div>
+                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Clinic Name</p>
+                <p class="text-xl font-bold text-gray-800">{{ clinic['name'] }}</p>
             </div>
-            <a href="{{ url_for('add_doctor_form') }}" class="add-btn">+ Add Doctor</a>
+            <div>
+                <p class="text-xs text-gray-400 uppercase font-bold mb-1">License</p>
+                <p class="text-xl font-mono text-gray-700">{{ clinic['license_number'] }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Email</p>
+                <p class="text-lg text-gray-800">{{ clinic['email'] }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Contact</p>
+                <p class="text-lg text-gray-800">{{ clinic['contact_number'] or 'Not Set' }}</p>
+            </div>
+            <div class="md:col-span-2">
+                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Location</p>
+                <p class="text-lg text-gray-800">{{ clinic['location'] or 'Not Set' }}</p>
+            </div>
         </div>
-
-        {% if doctors and doctors|length > 0 %}
-            <ul class="doctor-list">
-                {% for d in doctors %}
-                    <li class="doctor-card">
-                        <div class="doctor-left">
-                            <div class="doctor-name">{{ d['name'] }}</div>
-                            <div class="doctor-email">{{ d['email'] }}</div>
-                            <div class="doctor-text">Qualifications: {{ d['qualifications'] }}</div>
-                            <div class="doctor-text">Base Fee: {{ d['base_fee'] }} Tk</div>
-                        </div>
-                        <div class="doctor-right">
-                            <div>
-                                <div class="slot-label">Schedule</div>
-                                {% if d['weekly_schedule'] %}
-                                    {% for part in d['weekly_schedule'].split(';') %}
-                                        {% set p = part.strip() %}
-                                        {% if p %}
-                                            <div class="slot-line">
-                                                <span class="slot-day">{{ p.split(' ')[0] }}</span>
-                                                <span class="slot-time">{{ ' '.join(p.split(' ')[1:]) }}</span>
-                                            </div>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="doctor-text">No slots set yet.</div>
-                                {% endif %}
-                            </div>
-
-                            <div class="actions">
-                                <a href="{{ url_for('edit_doctor_form', doctor_id=d['id']) }}">
-                                    <button type="button" class="btn-edit">Edit</button>
-                                </a>
-
-                                <form action="{{ url_for('delete_doctor_from_dashboard', doctor_id=d['id']) }}"
-                                    method="post"
-                                    style="display:inline;"
-                                    onsubmit="event.preventDefault(); openDeleteModal(this);">
-                                  <button type="submit" class="btn-delete">Delete</button>
-                                </form>
-
-                            </div>
-                        </div>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <div class="empty-state">
-                No doctors added yet. Click “+ Add Doctor” to create one.
-            </div>
-        {% endif %}
-    </div>
+    {% endif %}
 
 </div>
-
-<script>
-    function showClinicTab(which) {
-        const clinicTab = document.getElementById('tab-clinic');
-        const doctorsTab = document.getElementById('tab-doctors');
-        const clinicSection = document.getElementById('clinic-section');
-        const doctorsSection = document.getElementById('doctors-section');
-
-        if (which === 'clinic') {
-            clinicTab.classList.add('active');
-            doctorsTab.classList.remove('active');
-            clinicSection.classList.add('active-section');
-            doctorsSection.classList.remove('active-section');
-        } else {
-            doctorsTab.classList.add('active');
-            clinicTab.classList.remove('active');
-            doctorsSection.classList.add('active-section');
-            clinicSection.classList.remove('active-section');
-        }
-    }
-
-    // 🔹 On page load, pick tab from ?tab=
-    window.addEventListener('DOMContentLoaded', function () {
-        const params = new URLSearchParams(window.location.search);
-        const tab = params.get('tab');
-        if (tab === 'doctors') {
-            showClinicTab('doctors');
-        } else {
-            showClinicTab('clinic');
-        }
-    });
-</script>
-
-<!-- Pretty delete confirmation modal -->
-<div id="delete-modal" class="modal-overlay" style="display:none;">
-    <div class="modal-card">
-        <div class="modal-title">Are you sure?</div>
-        <div class="modal-text">
-            This doctor’s profile will be removed from your clinic dashboard.
-        </div>
-        <div class="modal-buttons">
-            <button id="modal-confirm" class="modal-btn-danger">Yes, Delete</button>
-            <button id="modal-cancel" class="modal-btn-cancel">No, Cancel</button>
-        </div>
-    </div>
-</div>
-
-<style>
-    .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.25);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 999;
-    }
-    .modal-card {
-        background: #fffdfb;
-        border-radius: 18px;
-        padding: 18px 22px;
-        min-width: 260px;
-        max-width: 340px;
-        border: 1px solid #ffd7b0;
-        box-shadow: 0 10px 24px rgba(0,0,0,0.12);
-        text-align: center;
-    }
-    .modal-title {
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: #c2185b;
-    }
-    .modal-text {
-        font-size: 13px;
-        color: #8c4b6e;
-        margin-bottom: 14px;
-    }
-    .modal-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-    }
-    .modal-btn-danger,
-    .modal-btn-cancel {
-        padding: 6px 14px;
-        border-radius: 16px;
-        border: none;
-        font-size: 13px;
-        cursor: pointer;
-    }
-    .modal-btn-danger {
-        background: #ff4f4f;
-        color: #ffffff;
-    }
-    .modal-btn-cancel {
-        background: #e3e3e3;
-        color: #555;
-    }
-</style>
-
-<script>
-    let formToDelete = null;
-
-    function openDeleteModal(form) {
-        formToDelete = form;
-        document.getElementById("delete-modal").style.display = "flex";
-    }
-
-    document.getElementById("modal-confirm").onclick = function () {
-        if (formToDelete) {
-            formToDelete.submit();
-        }
-    };
-
-    document.getElementById("modal-cancel").onclick = function () {
-        document.getElementById("delete-modal").style.display = "none";
-        formToDelete = null;
-    };
-</script>
-
-</body>
-</html>
+{% endblock %}

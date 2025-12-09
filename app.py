@@ -549,6 +549,7 @@ def edit_owner_profile():
         return redirect(url_for("owner_dashboard", tab="owner"))
 
     return render_template("edit_owner_profile.html", owner=owner)
+
 # ------------- Clinic Dashboard & Doctors (Faria) -------------
 
 @app.route("/clinic/dashboard")
@@ -767,5 +768,91 @@ def admin_view_list(status):
                            status=status, 
                            page=page, 
                            total_pages=total_pages)
+
+
+# -- FEATURE 6: ANALYTICS REPORTS (Rayan) --
+
+@app.route('/clinic/reports')
+def clinic_reports():
+    # 1. Security Check
+    if "user_id" not in session or session.get("role") != "clinic":
+        return redirect(url_for("login"))
+
+    clinic = get_or_create_clinic_for_current_user()
+    if not clinic:
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    
+    # --- 1: TOTAL COMPLETED APPOINTMENTS ---
+    # We count appointments where status is 'completed' for ANY doctor in this clinic
+    total_appointments = conn.execute('''
+        SELECT COUNT(*) 
+        FROM appointments a
+        JOIN doctors d ON a.doctor_id = d.id
+        WHERE d.clinic_id = ? AND a.status = 'completed'
+    ''', (clinic['id'],)).fetchone()[0]
+
+    # --- 2: ESTIMATED REVENUE ---
+    # Sum of base_fee for all completed appointments
+    revenue = conn.execute('''
+        SELECT SUM(d.base_fee) 
+        FROM appointments a
+        JOIN doctors d ON a.doctor_id = d.id
+        WHERE d.clinic_id = ? AND a.status = 'completed'
+    ''', (clinic['id'],)).fetchone()[0]
+    
+    # If revenue is None (no appointments), make it 0
+    total_revenue = round(revenue, 2) if revenue else 0.0
+
+    # --- 3: AVERAGE RATING ---
+    # Average of the 'rating' column for this clinic's doctors
+    avg_rating = conn.execute('''
+        SELECT AVG(a.rating) 
+        FROM appointments a
+        JOIN doctors d ON a.doctor_id = d.id
+        WHERE d.clinic_id = ? AND a.rating IS NOT NULL
+    ''', (clinic['id'],)).fetchone()[0]
+
+    # If no ratings yet, make it 0
+    average_rating = round(avg_rating, 1) if avg_rating else 0.0
+
+    conn.close()
+
+    return render_template('clinic_reports.html', 
+                           clinic=clinic,
+                           total_appointments=total_appointments,
+                           total_revenue=total_revenue,
+                           average_rating=average_rating)
+
+# --- HELPER: GENERATE DUMMY DATA (For Testing Only) ---
+@app.route('/generate_test_data')
+def generate_test_data():
+    # This route quickly adds fake appointments so you can test the report
+    if "user_id" not in session or session.get("role") != "clinic":
+        return redirect(url_for("login"))
+        
+    clinic = get_or_create_clinic_for_current_user()
+    conn = get_db()
+    
+    # Find a doctor in this clinic
+    doctor = conn.execute("SELECT id FROM doctors WHERE clinic_id=?", (clinic['id'],)).fetchone()
+    
+    # If we have a doctor, create fake finished appointments
+    if doctor:
+        # 1. Completed appt (Earns money, 5 stars)
+        conn.execute("INSERT INTO appointments (pet_id, doctor_id, appointment_date, status, rating) VALUES (1, ?, '2025-12-01', 'completed', 5)", (doctor['id'],))
+        # 2. Completed appt (Earns money, 4 stars)
+        conn.execute("INSERT INTO appointments (pet_id, doctor_id, appointment_date, status, rating) VALUES (1, ?, '2025-12-02', 'completed', 4)", (doctor['id'],))
+        # 3. Pending appt (Does NOT earn money yet)
+        conn.execute("INSERT INTO appointments (pet_id, doctor_id, appointment_date, status, rating) VALUES (1, ?, '2025-12-05', 'pending', NULL)", (doctor['id'],))
+        
+        conn.commit()
+        flash("Test data generated! Check your reports now.", "success")
+    else:
+        flash("Please add a doctor first.", "warning")
+        
+    conn.close()
+    return redirect(url_for('clinic_reports'))
 if __name__ == "__main__":
     app.run(debug=True)

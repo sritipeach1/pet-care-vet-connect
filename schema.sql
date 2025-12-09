@@ -67,3 +67,14 @@ CREATE TABLE doctors (
     weekly_schedule TEXT NOT NULL,
     FOREIGN KEY (clinic_id) REFERENCES clinics(id)
 );
+-- Appointments (for bookings and analytics)
+CREATE TABLE appointments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pet_id INTEGER NOT NULL,
+    doctor_id INTEGER NOT NULL,
+    appointment_date DATETIME NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    rating INTEGER,        -- 1 to 5              
+    FOREIGN KEY (pet_id) REFERENCES pets(id),
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id)
+);

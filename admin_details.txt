@@ -1,2 +1,5 @@
-admin@petcare.com
-admin123
+
+1. ADMIN:   admin@petconnect.com  / admin123"
+2. CLINIC:  clinic@test.com       / 1234"
+3. OWNER:   owner@test.com        / 1234
+4. PENDING: pending@test.com      / 1234"

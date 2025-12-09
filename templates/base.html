@@ -46,7 +46,8 @@
 
   <!-- Main content card -->
   <main class="min-h-screen">
-    <div class="{% if wide_mode %}max-w-7xl{% else %}max-w-md{% endif %} mx-auto mt-10">
+    <div class="max-w-7xl mx-auto mt-10">
+
       <div class="bg-white rounded-2xl shadow-md px-8 py-6">
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}

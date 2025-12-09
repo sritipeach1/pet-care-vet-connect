@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h2 class="text-3xl font-bold text-gray-800">Analytics Reports</h2>
+            <p class="text-gray-500">Performance for {{ clinic['name'] }}</p>
+        </div>
+        
+        <a href="{{ url_for('generate_test_data') }}" class="text-sm text-pink-600 hover:text-pink-800 underline">
+            + Generate Test Data
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        
+        <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+            <h3 class="text-gray-500 text-sm font-bold uppercase mb-2">Total Appointments</h3>
+            <p class="text-4xl font-bold text-gray-800">{{ total_appointments }}</p>
+            <p class="text-xs text-gray-400 mt-2">Completed visits only</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+            <h3 class="text-gray-500 text-sm font-bold uppercase mb-2">Est. Revenue</h3>
+            <p class="text-4xl font-bold text-green-600">৳{{ total_revenue }}</p>
+            <p class="text-xs text-gray-400 mt-2">Based on doctor base fees</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
+            <h3 class="text-gray-500 text-sm font-bold uppercase mb-2">Average Rating</h3>
+            <div class="flex items-center">
+                <p class="text-4xl font-bold text-gray-800 mr-2">{{ average_rating }}</p>
+                <span class="text-yellow-400 text-2xl">★</span>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">From patient reviews</p>
+        </div>
+    </div>
+
+    <div class="mt-8">
+        <a href="{{ url_for('clinic_dashboard') }}" class="bg-gray-600 text-white px-6 py-3 rounded-full font-bold hover:bg-gray-700 transition">
+            &larr; Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
