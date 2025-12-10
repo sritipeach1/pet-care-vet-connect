@@ -1,112 +1,135 @@
 {% extends "base.html" %}
-
 {% block content %}
 
-<div class="flex flex-col md:flex-row justify-between items-center mb-8">
+<div class="flex flex-col md:flex-row justify-between items-center mb-6">
     <div class="text-center md:text-left">
-        <h2 class="text-3xl font-bold text-pink-600">Vet Clinic Dashboard</h2>
-        <p class="text-gray-500">Welcome, {{ clinic['name'] }}</p>
+        <h2 class="text-2xl font-semibold text-pink-600">Vet Clinic Dashboard</h2>
+        <p class="text-sm text-gray-500">Welcome, {{ clinic['name'] }}</p>
     </div>
-    <a href="{{ url_for('logout') }}" class="mt-4 md:mt-0 border border-pink-300 text-pink-600 hover:bg-pink-50 px-6 py-2 rounded-full transition">
+
+    <a href="{{ url_for('logout') }}" 
+       class="mt-4 md:mt-0 border border-pink-300 text-pink-600 hover:bg-pink-50 px-5 py-2 rounded-full text-sm transition">
         Logout
     </a>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-    <a href="{{ url_for('clinic_dashboard', tab='profile') }}" 
-       class="block text-center py-3 rounded-lg font-bold shadow-md transition {{ 'bg-pink-600 text-white' if tab == 'profile' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <a href="{{ url_for('clinic_dashboard', tab='profile') }}"
+       class="block text-center py-2 rounded-lg font-medium shadow transition
+       {{ 'bg-pink-600 text-white' if tab == 'profile' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
         🏥 Clinic Profile
     </a>
-    
-    <a href="{{ url_for('clinic_dashboard', tab='doctors') }}" 
-       class="block text-center py-3 rounded-lg font-bold shadow-md transition {{ 'bg-pink-600 text-white' if tab == 'doctors' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
+
+    <a href="{{ url_for('clinic_dashboard', tab='doctors') }}"
+       class="block text-center py-2 rounded-lg font-medium shadow transition
+       {{ 'bg-pink-600 text-white' if tab == 'doctors' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
         👨‍⚕️ Manage Doctors
     </a>
 
-    <a href="{{ url_for('clinic_reports') }}" 
-       class="block text-center py-3 rounded-lg font-bold shadow-md bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200">
+    <a href="{{ url_for('clinic_reports') }}"
+       class="block text-center py-2 rounded-lg font-medium shadow bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200">
         📊 View Analytics
     </a>
 </div>
 
-<div class="bg-white shadow-md rounded-lg p-6 border-l-4 border-pink-500 min-h-[500px]">
+<div class="bg-white shadow-md rounded-lg p-6 border-l-4 border-pink-500 min-h-[450px]">
 
-    {% if tab == 'doctors' %}
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-gray-800">Doctor Profiles</h3>
-            <a href="{{ url_for('add_doctor_form') }}" class="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 rounded-full font-bold shadow-lg transition flex items-center gap-2">
-                <span class="text-xl">+</span> Add Doctor
-            </a>
-        </div>
+{% if tab == 'doctors' %}
 
-        {% if doctors %}
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {% for doctor in doctors %}
-                <div class="border border-gray-200 rounded-xl p-6 hover:shadow-xl transition bg-gray-50 relative">
-                    <span class="absolute top-4 right-4 bg-pink-100 text-pink-600 text-xs font-bold px-2 py-1 rounded">
-                        {{ doctor['qualifications'] }}
-                    </span>
+    <div class="flex justify-between items-center mb-6">
+        <h3 class="text-lg font-semibold text-gray-800">Doctor Profiles</h3>
 
-                    <h4 class="text-xl font-bold text-gray-800 mb-1">{{ doctor['name'] }}</h4>
-                    <p class="text-sm text-gray-500 mb-4">{{ doctor['email'] }}</p>
-                    
-                    <div class="flex justify-between items-center mb-4 bg-white p-2 rounded-lg border border-gray-100">
-                        <span class="text-xs font-bold text-gray-400 uppercase">Fee</span>
-                        <span class="text-lg font-bold text-blue-600">৳{{ doctor['base_fee'] }}</span>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-3">
-                        <a href="{{ url_for('edit_doctor_form', doctor_id=doctor['id']) }}" 
-                           class="text-center bg-white border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 font-bold transition">
-                            Edit
-                        </a>
-                        <form action="{{ url_for('delete_doctor_from_dashboard', doctor_id=doctor['id']) }}" method="POST" onsubmit="return confirm('Delete Dr. {{ doctor.name }}?');">
-                            <button type="submit" class="w-full bg-red-50 border border-red-100 text-red-600 py-2 rounded-lg hover:bg-red-100 font-bold transition">
-                                Delete
-                            </button>
-                        </form>
-                    </div>
+        <a href="{{ url_for('add_doctor_form') }}"
+           class="bg-pink-600 hover:bg-pink-700 text-white px-5 py-2 rounded-full text-sm font-medium shadow transition flex items-center gap-2">
+            <span class="text-lg">+</span> Add Doctor
+        </a>
+    </div>
+
+    {% if doctors %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {% for doctor in doctors %}
+            <div class="border border-gray-200 rounded-xl p-5 hover:shadow transition bg-gray-50 relative">
+
+                <span class="absolute top-3 right-3 bg-pink-100 text-pink-600 text-xs font-medium px-2 py-1 rounded">
+                    {{ doctor['qualifications'] }}
+                </span>
+
+                <h4 class="text-lg font-semibold text-gray-800 mb-1">{{ doctor['name'] }}</h4>
+                <p class="text-xs text-gray-500 mb-4">{{ doctor['email'] }}</p>
+
+                <div class="flex justify-between items-center mb-4 bg-white p-2 rounded-lg border text-sm">
+                    <span class="text-gray-400 uppercase">Fee</span>
+                    <span class="font-semibold text-blue-600">৳{{ doctor['base_fee'] }}</span>
                 </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-                <h3 class="text-xl font-bold text-gray-600">No doctors yet</h3>
-                <p class="text-gray-400 mb-4">Add your first doctor to get started.</p>
-            </div>
-        {% endif %}
 
-    {% elif tab == 'profile' %}
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold text-gray-800">Clinic Details</h3>
-            <a href="{{ url_for('edit_clinic_profile') }}" class="bg-gray-800 hover:bg-gray-900 text-white px-6 py-2 rounded-full font-bold transition">
-                Edit Profile
-            </a>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <a href="{{ url_for('edit_doctor_form', doctor_id=doctor['id']) }}"
+                       class="text-center bg-white border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-50 font-medium">
+                        Edit
+                    </a>
+
+                    <form action="{{ url_for('delete_doctor_from_dashboard', doctor_id=doctor['id']) }}" method="POST"
+                          onsubmit="return confirm('Delete Dr. {{ doctor.name }}?');">
+                        <button type="submit"
+                                class="w-full bg-red-50 border border-red-100 text-red-600 py-2 rounded hover:bg-red-100 font-medium">
+                            Delete
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+            {% endfor %}
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-8 rounded-xl border border-gray-200">
-            <div>
-                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Clinic Name</p>
-                <p class="text-xl font-bold text-gray-800">{{ clinic['name'] }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-400 uppercase font-bold mb-1">License</p>
-                <p class="text-xl font-mono text-gray-700">{{ clinic['license_number'] }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Email</p>
-                <p class="text-lg text-gray-800">{{ clinic['email'] }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Contact</p>
-                <p class="text-lg text-gray-800">{{ clinic['contact_number'] or 'Not Set' }}</p>
-            </div>
-            <div class="md:col-span-2">
-                <p class="text-xs text-gray-400 uppercase font-bold mb-1">Location</p>
-                <p class="text-lg text-gray-800">{{ clinic['location'] or 'Not Set' }}</p>
-            </div>
+    {% else %}
+        <div class="text-center py-14 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-600">No doctors yet</h3>
+            <p class="text-sm text-gray-400">Add your first doctor to get started.</p>
         </div>
     {% endif %}
 
+{% elif tab == 'profile' %}
+
+    <div class="flex justify-between items-center mb-6">
+        <h3 class="text-lg font-semibold text-gray-800">Clinic Details</h3>
+
+        <a href="{{ url_for('edit_clinic_profile') }}"
+           class="bg-gray-800 hover:bg-gray-900 text-white px-5 py-2 rounded-full font-medium text-sm">
+           Edit Profile
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-xl border border-gray-200 text-sm">
+
+        <div>
+            <p class="text-xs text-gray-400 uppercase font-medium mb-1">Clinic Name</p>
+            <p class="text-lg font-semibold text-gray-800">{{ clinic['name'] }}</p>
+        </div>
+
+        <div>
+            <p class="text-xs text-gray-400 uppercase font-medium mb-1">License</p>
+            <p class="text-base font-mono text-gray-700">{{ clinic['license_number'] }}</p>
+        </div>
+
+        <div>
+            <p class="text-xs text-gray-400 uppercase font-medium mb-1">Email</p>
+            <p class="text-base text-gray-800">{{ clinic['email'] }}</p>
+        </div>
+
+        <div>
+            <p class="text-xs text-gray-400 uppercase font-medium mb-1">Contact</p>
+            <p class="text-base text-gray-800">{{ clinic['contact_number'] or 'Not Set' }}</p>
+        </div>
+
+        <div class="md:col-span-2">
+            <p class="text-xs text-gray-400 uppercase font-medium mb-1">Location</p>
+            <p class="text-base text-gray-800">{{ clinic['location'] or 'Not Set' }}</p>
+        </div>
+
+    </div>
+
+{% endif %}
+
 </div>
+
 {% endblock %}
