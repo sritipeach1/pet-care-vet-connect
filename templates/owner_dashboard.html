@@ -261,6 +261,15 @@
 
     <!-- Tabs -->
     <div class="tabs">
+       
+        <a href="{{ url_for('owner_search') }}" class="tab" style="text-decoration:none;">
+            Search
+        </a>
+        <a href="{{ url_for('owner_appointments') }}" class="tab" style="text-decoration:none;">
+            Appointment
+        </a>
+
+      
         <button id="tab-owner" class="tab active" type="button"
                 onclick="showOwnerTab('owner')">Owner Profile</button>
         <button id="tab-pets" class="tab" type="button"
