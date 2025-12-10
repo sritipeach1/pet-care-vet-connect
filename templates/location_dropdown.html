@@ -1,0 +1,8 @@
+{% set areas = ['Banasree', 'Gulshan', 'Banani', 'Baridhara', 'Bashabo', 'Dhanmondi', 'Old Dhaka', 'Uttara'] %}
+
+{% for area in areas %}
+<option value="{{ area }}"
+    {% if selected_location == area %}selected{% endif %}>
+    {{ area }}
+</option>
+{% endfor %}

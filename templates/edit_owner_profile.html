@@ -90,10 +90,14 @@
 
         <div style="margin-bottom:10px;">
             <label>Location:</label><br>
-            <input type="text" name="location" required
-                   value="{{ owner['location'] }}"
-                   style="width:100%;padding:6px 8px;border-radius:10px;border:1px solid #c5d7f2;">
+
+            {% set selected_location = owner['location'] %}
+            <select name="location" required
+                    style="width:100%;padding:6px 8px;border-radius:10px;border:1px solid #c5d7f2;">
+                {% include 'location_dropdown.html' %}
+            </select>
         </div>
+
 
         <div style="margin-bottom:14px;">
             <label>Password:</label><br>
