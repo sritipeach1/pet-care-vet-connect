@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Add Doctor</title>
+</head>
+<body style="background-color: #ffe4f1; font-family: Arial, sans-serif;">
+
+    <h1>Add Doctor</h1>
+
+    <form method="post"
+      onsubmit="event.preventDefault(); openDoctorSaveModal(this);"
+      style="margin-top: 10px;">
+
+
+        <div style="margin-bottom: 10px;">
+            <label>Doctor Name:</label><br>
+            <input type="text" name="name" required style="width: 100%;">
+        </div>
+
+        <div style="margin-bottom: 10px;">
+            <label>Email:</label><br>
+            <input type="email" name="email" required style="width: 100%;">
+        </div>
+
+        <div style="margin-bottom: 10px;">
+            <label>Base Fee (TK):</label><br>
+            <input type="number" name="base_fee" required style="width: 100%;">
+        </div>
+
+        <div style="margin-bottom: 10px;">
+            <label>Qualifications:</label><br>
+            <input type="text" name="qualifications" required style="width: 100%;">
+        </div>
+
+        <hr style="margin: 15px 0;">
+
+        <h3>Select / Edit Slot</h3>
+        <p style="font-size: 12px; color: gray;">
+            Tick the days you work and choose a start and end time.
+        </p>
+
+        <table style="width: 100%; font-size: 14px;">
+            <tr>
+                <th></th>
+                <th>Day</th>
+                <th>From</th>
+                <th>To</th>
+            </tr>
+
+            {% set days = [
+                ('sat', 'Saturday'),
+                ('sun', 'Sunday'),
+                ('mon', 'Monday'),
+                ('tue', 'Tuesday'),
+                ('wed', 'Wednesday'),
+                ('thu', 'Thursday'),
+                ('fri', 'Friday')
+            ] %}
+
+            {% for key, label in days %}
+            <tr>
+                <td>
+                    <input type="checkbox" name="{{ key }}_enabled">
+                </td>
+                <td>{{ label }}</td>
+                <td>
+                    <input type="time" name="{{ key }}_start">
+                </td>
+                <td>
+                    <input type="time" name="{{ key }}_end">
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <div style="margin-top: 15px;">
+            <button type="submit"
+                    style="padding: 6px 16px; border-radius: 16px; border: none; background-color: #ff4f9a; color: white;">
+                Save Doctor
+            </button>
+
+            <a href="{{ url_for('clinic_dashboard') }}" style="margin-left: 10px;">Cancel</a>
+        </div>
+
+    </form>
+<!-- Cute confirmation modal for adding a doctor -->
+<div id="doctor-save-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+        <div class="modal-title">Add this doctor?</div>
+        <div class="modal-text">
+            This doctor profile will be added to your clinic dashboard.
+        </div>
+        <div class="modal-buttons">
+            <button id="doctor-save-confirm" class="modal-btn-primary">Save</button>
+            <button id="doctor-save-cancel" class="modal-btn-cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.25);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 999;
+    }
+    .modal-card {
+        background: #fffdfb;
+        border-radius: 18px;
+        padding: 18px 22px;
+        min-width: 260px;
+        max-width: 340px;
+        border: 1px solid #ffd7b0;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+        text-align: center;
+    }
+    .modal-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #c2185b;
+    }
+    .modal-text {
+        font-size: 13px;
+        color: #8c4b6e;
+        margin-bottom: 14px;
+    }
+    .modal-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+    .modal-btn-primary,
+    .modal-btn-cancel {
+        padding: 6px 14px;
+        border-radius: 16px;
+        border: none;
+        font-size: 13px;
+        cursor: pointer;
+    }
+    .modal-btn-primary {
+        background: #ff4f9a;
+        color: #ffffff;
+    }
+    .modal-btn-cancel {
+        background: #e3e3e3;
+        color: #555;
+    }
+</style>
+
+<script>
+    let doctorSaveForm = null;
+
+    function openDoctorSaveModal(form) {
+        doctorSaveForm = form;
+        document.getElementById('doctor-save-modal').style.display = 'flex';
+    }
+
+    document.getElementById('doctor-save-confirm').onclick = function () {
+        if (doctorSaveForm) {
+            doctorSaveForm.submit();
+        }
+    };
+
+    document.getElementById('doctor-save-cancel').onclick = function () {
+        document.getElementById('doctor-save-modal').style.display = 'none';
+        doctorSaveForm = null;
+    };
+</script>
+
+</body>
+</html>

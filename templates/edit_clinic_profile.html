@@ -102,12 +102,17 @@
                    style="width:100%;padding:6px 8px;border-radius:10px;border:1px solid #f0bfd9;">
         </div>
 
-        <div style="margin-bottom:14px;">
+        <div style="margin-bottom:10px;">
             <label>Location:</label><br>
-            <input type="text" name="location" required
-                   value="{{ clinic['location'] }}"
-                   style="width:100%;padding:6px 8px;border-radius:10px;border:1px solid #f0bfd9;">
+
+            {% set selected_location = clinic['location'] %}
+            <select name="location" required
+                    style="width:100%;padding:6px 8px;border-radius:10px;border:1px solid #c5d7f2;">
+                {% include 'location_dropdown.html' %}
+            </select>
         </div>
+
+
 
         <button type="submit"
                 style="padding:7px 18px;border-radius:999px;border:none;
