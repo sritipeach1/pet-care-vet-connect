@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-5xl mx-auto">
+
+  <!-- Top nav (same as appointments page) -->
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex space-x-2 bg-blue-100 rounded-full px-1 py-1 text-sm">
+      <a href="{{ url_for('owner_search') }}"
+         class="px-4 py-1 rounded-full bg-blue-600 text-white">
+        Search
+      </a>
+      <a href="{{ url_for('owner_appointments') }}"
+         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+        Appointment
+      </a>
+      <a href="{{ url_for('owner_dashboard', tab='pets') }}"
+         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+        My Pets
+      </a>
+      <a href="{{ url_for('owner_dashboard', tab='owner') }}"
+         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+        Profile
+      </a>
+      <span class="px-4 py-1 rounded-full text-gray-400 bg-blue-50 border border-dashed border-blue-200">
+        PetBot (coming soon)
+      </span>
+    </div>
+  </div>
+
+  <!-- Search card -->
+  <div class="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6">
+    <h2 class="text-lg font-semibold text-blue-800 mb-2">Find a Vet Clinic</h2>
+    <p class="text-xs text-gray-500 mb-4">
+      Search by clinic name or location. Only verified clinics are shown.
+    </p>
+
+    <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+
+      <!-- Search text -->
+      <div class="md:col-span-3">
+        <label class="block text-xs text-gray-500 mb-1">Search</label>
+        <input type="text" name="q"
+               value="{{ q or '' }}"
+               placeholder="Type clinic name or area..."
+               class="w-full border border-blue-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+
+      <!-- Location dropdown -->
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Location</label>
+        <select name="location"
+                class="w-full border border-blue-200 rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <option value="all">All locations</option>
+          {% for loc in locations %}
+            <option value="{{ loc }}" {% if location_filter == loc %}selected{% endif %}>{{ loc }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Rating dropdown -->
+      <div class="md:col-span-4 flex justify-end">
+        <select name="rating"
+                class="border border-blue-200 rounded-full px-3 py-2 text-xs mr-3 focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <option value="all" {% if rating_filter == 'all' %}selected{% endif %}>All ratings</option>
+          <option value="4.5plus" {% if rating_filter == '4.5plus' %}selected{% endif %}>4.5+ stars</option>
+          <option value="4plus" {% if rating_filter == '4plus' %}selected{% endif %}>4.0+ stars</option>
+          <option value="3plus" {% if rating_filter == '3plus' %}selected{% endif %}>3.0+ stars</option>
+        </select>
+
+        <!-- Gradient button (Purple → Blue) -->
+        <button type="submit"
+                class="px-6 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-sm font-semibold shadow hover:shadow-md transition">
+          Search
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Results list -->
+  {% if clinics and clinics|length > 0 %}
+    <div class="space-y-4">
+      {% for c in clinics %}
+        <div class="bg-white rounded-2xl border border-blue-100 px-5 py-4 flex justify-between items-center">
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 class="font-semibold text-blue-800">{{ c['name'] }}</h3>
+              <span class="text-yellow-500 text-xs">
+                ★ {{ '%.1f'|format(c['clinic_rating'] or 0) }}
+              </span>
+            </div>
+
+            <p class="text-xs text-gray-500 mt-1">
+              📍 {{ c['location'] }}
+              {% if c['clinic_location'] %}
+                · Area: {{ c['clinic_location'] }}
+              {% endif %}
+            </p>
+
+            {% if c['email'] %}
+              <p class="text-xs text-gray-400 mt-0.5">✉ {{ c['email'] }}</p>
+            {% endif %}
+
+            <p class="text-[11px] text-gray-400 mt-1">
+              {{ c['doctor_count'] }} doctor{{ 's' if c['doctor_count'] != 1 else '' }} available
+            </p>
+          </div>
+
+          <!-- Blue-purple button -->
+          <a href="{{ url_for('owner_clinic_detail', clinic_id=c['id']) }}"
+             class="px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-sm font-semibold shadow hover:shadow-md transition">
+            View &amp; Book
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="bg-white rounded-2xl border border-dashed border-blue-200 p-8 text-center text-sm text-gray-500">
+      No clinics match your search yet. Try another name or location.
+    </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}
