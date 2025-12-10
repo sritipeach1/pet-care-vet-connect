@@ -69,13 +69,13 @@
                         Edit
                     </a>
 
-                    <form action="{{ url_for('delete_doctor_from_dashboard', doctor_id=doctor['id']) }}" method="POST"
-                          onsubmit="return confirm('Delete Dr. {{ doctor.name }}?');">
-                        <button type="submit"
-                                class="w-full bg-red-50 border border-red-100 text-red-600 py-2 rounded hover:bg-red-100 font-medium">
-                            Delete
-                        </button>
-                    </form>
+                    <button type="button"
+                        class="w-full bg-red-50 border border-red-100 text-red-600 py-2 rounded hover:bg-red-100 font-medium"
+                        data-delete-url="{{ url_for('delete_doctor_from_dashboard', doctor_id=doctor['id']) }}"
+                        onclick="openDoctorDeleteModal(this);">
+                      Delete
+                    </button>
+
                 </div>
 
             </div>
@@ -132,5 +132,97 @@
 {% endif %}
 
 </div>
+
+<!-- Hidden form that will actually submit the delete request -->
+<form id="doctor-delete-form" method="POST" style="display:none;"></form>
+
+<!-- Pretty delete confirmation modal for doctors -->
+<div id="doctor-delete-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+        <div class="modal-title">Delete this doctor?</div>
+        <div class="modal-text">
+            This doctor profile will be permanently removed from your clinic.
+        </div>
+        <div class="modal-buttons">
+            <button id="doctor-modal-confirm" class="modal-btn-danger">Yes, Delete</button>
+            <button id="doctor-modal-cancel" class="modal-btn-cancel">No, Keep</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.25);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 999;
+    }
+    .modal-card {
+        background: #fffdfb;
+        border-radius: 18px;
+        padding: 18px 22px;
+        min-width: 260px;
+        max-width: 340px;
+        border: 1px solid #ffd7b0;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+        text-align: center;
+    }
+    .modal-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #c2185b;
+    }
+    .modal-text {
+        font-size: 13px;
+        color: #8c4b6e;
+        margin-bottom: 14px;
+    }
+    .modal-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+    .modal-btn-danger,
+    .modal-btn-cancel {
+        padding: 6px 14px;
+        border-radius: 16px;
+        border: none;
+        font-size: 13px;
+        cursor: pointer;
+    }
+    .modal-btn-danger {
+        background: #e53935;
+        color: #ffffff;
+    }
+    .modal-btn-cancel {
+        background: #e3e3e3;
+        color: #555;
+    }
+</style>
+
+<script>
+    let doctorDeleteUrl = null;
+
+    function openDoctorDeleteModal(button) {
+        doctorDeleteUrl = button.getAttribute('data-delete-url');
+        document.getElementById('doctor-delete-modal').style.display = 'flex';
+    }
+
+    document.getElementById('doctor-modal-confirm').onclick = function () {
+        if (doctorDeleteUrl) {
+            const form = document.getElementById('doctor-delete-form');
+            form.action = doctorDeleteUrl;
+            form.submit();
+        }
+    };
+
+    document.getElementById('doctor-modal-cancel').onclick = function () {
+        document.getElementById('doctor-delete-modal').style.display = 'none';
+        doctorDeleteUrl = null;
+    };
+</script>
 
 {% endblock %}
