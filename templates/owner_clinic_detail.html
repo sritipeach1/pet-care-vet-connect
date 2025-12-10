@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-5xl mx-auto">
+
+  <!-- Top nav row -->
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex space-x-2 bg-blue-100 rounded-full px-1 py-1 text-sm">
+      <a href="{{ url_for('owner_search') }}"
+         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+        Search
+      </a>
+      <a href="{{ url_for('owner_appointments') }}"
+         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+        Appointment
+      </a>
+      <a href="{{ url_for('owner_dashboard', tab='pets') }}"
+         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+        My Pets
+      </a>
+      <a href="{{ url_for('owner_dashboard', tab='owner') }}"
+         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+        Profile
+      </a>
+      <span class="px-4 py-1 rounded-full text-gray-400 bg-blue-50 border border-dashed border-blue-200">
+        PetBot (coming soon)
+      </span>
+    </div>
+
+    <a href="{{ url_for('owner_search') }}"
+       class="text-xs text-gray-500 hover:text-blue-600 underline">
+      &larr; Back to results
+    </a>
+  </div>
+
+  <!-- Clinic header -->
+  <div class="bg-white rounded-2xl border border-blue-100 shadow-sm px-6 py-5 mb-5">
+    <div class="flex justify-between items-start">
+      <div>
+        <div class="flex items-center space-x-2">
+          <h2 class="text-xl font-semibold text-blue-800">{{ clinic['name'] }}</h2>
+          <span class="text-yellow-500 text-sm">
+            ★ {{ '%.1f'|format(clinic['clinic_rating'] or 0) }}
+          </span>
+        </div>
+
+        <p class="text-xs text-gray-500 mt-1">
+          📍 {{ clinic['location'] }}{% if clinic['contact_number'] %} &middot; ☎ {{ clinic['contact_number'] }}{% endif %}
+        </p>
+        {% if clinic['email'] %}
+          <p class="text-xs text-gray-400 mt-0.5">✉ {{ clinic['email'] }}</p>
+        {% endif %}
+        <p class="text-[11px] text-gray-400 mt-1">
+          License: {{ clinic['license_number'] }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Doctors + booking -->
+  {% if doctors %}
+    <div class="space-y-4">
+      {% for d in doctors %}
+        {% set slots = doctor_slots.get(d['id'], []) %}
+        <div class="bg-blue-50 rounded-2xl border border-blue-100 px-5 py-4">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="font-semibold text-blue-900">{{ d['name'] }}</h3>
+              <p class="text-xs text-gray-500">{{ d['qualifications'] }}</p>
+              <p class="text-xs text-gray-500 mt-1">✉ {{ d['email'] }}</p>
+              <p class="text-xs text-gray-500 mt-1">
+                Base Fee: <span class="font-semibold text-blue-700">৳{{ d['base_fee'] }}</span>
+              </p>
+              {% if d['weekly_schedule'] %}
+                <p class="text-[11px] text-gray-500 mt-2">
+                  🗓 {{ d['weekly_schedule'] }}
+                </p>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Booking form for this doctor -->
+          <form method="post"
+                action="{{ url_for('book_appointment', clinic_id=clinic['id'], doctor_id=d['id']) }}"
+                class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3 items-end bg-white rounded-2xl border border-blue-100 px-4 py-3 time-slot-group">
+
+            <!-- Pet dropdown -->
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Pet</label>
+              <select name="pet_id"
+                      class="w-full border border-blue-200 rounded-full px-3 py-2 text-sm">
+                <option value="">Choose pet...</option>
+                {% for p in pets %}
+                  <option value="{{ p['id'] }}">{{ p['name'] }} ({{ p['animal_type'] }})</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Date -->
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Date</label>
+              <input type="date" name="date"
+                     class="w-full border border-blue-200 rounded-full px-3 py-2 text-sm">
+            </div>
+
+            <!-- Time slots -->
+            <div class="md:col-span-2">
+              <label class="block text-xs text-gray-500 mb-1">Available Time Slots</label>
+
+              {% if slots %}
+                <!-- hidden input to hold the chosen time (HH:MM) -->
+                <input type="hidden" name="time" value="">
+
+                <div class="flex flex-wrap gap-2">
+                  {% for s in slots %}
+                    <button type="button"
+                            class="time-slot-btn px-3 py-1 rounded-full border border-blue-300 text-xs text-blue-700 bg-white hover:bg-blue-50"
+                            data-time="{{ s['start'] }}">
+                      {{ s['label'] }}
+                    </button>
+                  {% endfor %}
+                </div>
+
+                <p class="text-[11px] text-gray-400 mt-1">
+                  Tap a slot to select it. Only these times can be booked.
+                </p>
+              {% else %}
+                <!-- Fallback: if no structured schedule, show simple time input -->
+                <input type="time" name="time"
+                       class="w-full border border-blue-200 rounded-full px-3 py-2 text-sm">
+                <p class="text-[11px] text-gray-400 mt-1">
+                  Clinic has not configured slots yet.
+                </p>
+              {% endif %}
+            </div>
+
+            <!-- Submit -->
+            <div class="flex justify-end mt-3 md:mt-0">
+              <button type="submit"
+                      class="px-4 py-2 w-full md:w-auto rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-sm font-semibold shadow hover:shadow-md transition">
+                Book Appointment
+              </button>
+            </div>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="bg-white rounded-2xl border border-dashed border-blue-200 p-8 text-center text-sm text-gray-500">
+      No doctors are listed for this clinic yet.
+    </div>
+  {% endif %}
+
+</div>
+
+<!-- Slot-selection script -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.time-slot-group').forEach(function (group) {
+      const hiddenInput = group.querySelector('input[name="time"]');
+      if (!hiddenInput) return;
+
+      const buttons = group.querySelectorAll('.time-slot-btn');
+      buttons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          // clear previous selection
+          buttons.forEach(function (b) {
+            b.classList.remove('bg-blue-600', 'text-white');
+            b.classList.add('bg-white', 'text-blue-700');
+          });
+
+          // set new value
+          hiddenInput.value = btn.dataset.time;
+
+          // highlight selected
+          btn.classList.remove('bg-white', 'text-blue-700');
+          btn.classList.add('bg-blue-600', 'text-white');
+        });
+      });
+    });
+  });
+</script>
+
+{% endblock %}
