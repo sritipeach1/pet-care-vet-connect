@@ -9,11 +9,10 @@ import re
 from datetime import datetime
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "change-this-secret-key"   # change later if you want
+app.config["SECRET_KEY"] = "change-this-secret-key"   
 app.config["DATABASE"] = os.path.join("instance", "petcare.db")
 
 
-# ----------------- DB helpers -----------------
 
 def get_db():
     conn = sqlite3.connect(app.config["DATABASE"])
@@ -22,17 +21,16 @@ def get_db():
 
 
 def init_db():
-    # make sure instance folder exists
+
     if not os.path.exists("instance"):
         os.makedirs("instance")
 
     conn = get_db()
-    # run schema.sql to (re)create tables
+    
     with open("schema.sql", "r") as f:
         conn.executescript(f.read())
     conn.commit()
 
-    # seed a default admin if not exists
     admin_email = "admin@petcare.com"
     admin = conn.execute(
         "SELECT * FROM users WHERE email = ?", (admin_email,)
@@ -68,7 +66,7 @@ def get_or_create_owner_for_current_user():
     ).fetchone()
 
     if not owner:
-        # create profile from users table
+        
         user = cur.execute(
             "SELECT * FROM users WHERE id = ?", (user_id,)
         ).fetchone()
@@ -212,11 +210,10 @@ if not os.path.exists(app.config["DATABASE"]):
     init_db()
 
 
-# ----------------- Routes -----------------
 
 @app.route("/")
 def index():
-    # for now, just go to login page
+ 
     return redirect(url_for("login"))
 
 @app.route("/register", methods=["GET", "POST"])
@@ -321,7 +318,7 @@ def dashboard():
     role = session.get("role")
 
     if role == "owner":
-        # send owners to Faria's owner dashboard
+    
         return redirect(url_for("owner_dashboard"))
     elif role == "clinic":
         return redirect(url_for("clinic_dashboard"))
@@ -391,7 +388,7 @@ def reject_clinic(user_id):
     flash("Clinic application marked as Rejected.", "warning")
     return redirect(url_for('admin_dashboard'))
 
-# ------------- Faria: Owner Dashboard & Pets -------------
+# Faria: Owner Dashboard & Pets 
 
 @app.route("/owner/dashboard")
 def owner_dashboard():
@@ -410,7 +407,7 @@ def owner_dashboard():
     ).fetchall()
     conn.close()
 
-    # tab=? in URL, default "owner"
+  
     tab = request.args.get("tab", "owner")
     return render_template("owner_dashboard.html", owner=owner, pets=pets, tab=tab)
 
@@ -553,7 +550,7 @@ def edit_owner_profile():
 
     return render_template("edit_owner_profile.html", owner=owner)
 
-# ------------- Clinic Dashboard & Doctors (Faria) -------------
+# Faria: Clinic Dashboard & Doctors 
 
 @app.route("/clinic/dashboard")
 def clinic_dashboard():
@@ -719,7 +716,7 @@ def edit_clinic_profile():
 
         return redirect(url_for("clinic_dashboard", tab="profile"))
 
-    # GET – reload latest data
+   
     clinic = cur.execute(
         "SELECT * FROM clinics WHERE id = ?",
         (clinic["id"],),
@@ -727,7 +724,7 @@ def edit_clinic_profile():
     conn.close()
 
     return render_template("edit_clinic_profile.html", clinic=clinic)
-# --- MISSING ROUTE FOR ADMIN LIST VIEW ---
+
 
 @app.route('/admin/view_list/<status>')
 def admin_view_list(status):
