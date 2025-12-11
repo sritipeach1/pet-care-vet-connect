@@ -841,19 +841,19 @@ def generate_test_data():
     # Find a doctor in this clinic
     doctor = conn.execute("SELECT id FROM doctors WHERE clinic_id=?", (clinic['id'],)).fetchone()
     
-    # If we have a doctor, create fake finished appointments
-    if doctor:
-        # 1. Completed appt (Earns money, 5 stars)
-        conn.execute("INSERT INTO appointments (pet_id, doctor_id, appointment_date, status, rating) VALUES (1, ?, '2025-12-01', 'completed', 5)", (doctor['id'],))
-        # 2. Completed appt (Earns money, 4 stars)
-        conn.execute("INSERT INTO appointments (pet_id, doctor_id, appointment_date, status, rating) VALUES (1, ?, '2025-12-02', 'completed', 4)", (doctor['id'],))
-        # 3. Pending appt (Does NOT earn money yet)
-        conn.execute("INSERT INTO appointments (pet_id, doctor_id, appointment_date, status, rating) VALUES (1, ?, '2025-12-05', 'pending', NULL)", (doctor['id'],))
+    # # If we have a doctor, create fake finished appointments
+    # if doctor:
+    #     # 1. Completed appt (Earns money, 5 stars)
+    #     conn.execute("INSERT INTO appointments (pet_id, doctor_id, appointment_date, status, rating) VALUES (1, ?, '2025-12-01', 'completed', 5)", (doctor['id'],))
+    #     # 2. Completed appt (Earns money, 4 stars)
+    #     conn.execute("INSERT INTO appointments (pet_id, doctor_id, appointment_date, status, rating) VALUES (1, ?, '2025-12-02', 'completed', 4)", (doctor['id'],))
+    #     # 3. Pending appt (Does NOT earn money yet)
+    #     conn.execute("INSERT INTO appointments (pet_id, doctor_id, appointment_date, status, rating) VALUES (1, ?, '2025-12-05', 'pending', NULL)", (doctor['id'],))
         
-        conn.commit()
-        flash("Test data generated! Check your reports now.", "success")
-    else:
-        flash("Please add a doctor first.", "warning")
+    #     conn.commit()
+    #     flash("Test data generated! Check your reports now.", "success")
+    # else:
+    #     flash("Please add a doctor first.", "warning")
         
     conn.close()
     return redirect(url_for('clinic_reports'))
