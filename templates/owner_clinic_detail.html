@@ -5,21 +5,21 @@
 
   <!-- Top nav row -->
   <div class="flex items-center justify-between mb-4">
-    <div class="flex space-x-2 bg-blue-100 rounded-full px-1 py-1 text-sm">
+    <div class="flex space-x-2 bg-blue-50 rounded-full px-1 py-1 text-sm border border-blue-100">
       <a href="{{ url_for('owner_search') }}"
-         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-100">
         Search
       </a>
       <a href="{{ url_for('owner_appointments') }}"
-         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-100">
         Appointment
       </a>
       <a href="{{ url_for('owner_dashboard', tab='pets') }}"
-         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-100">
         My Pets
       </a>
       <a href="{{ url_for('owner_dashboard', tab='owner') }}"
-         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-100">
         Profile
       </a>
       <span class="px-4 py-1 rounded-full text-gray-400 bg-blue-50 border border-dashed border-blue-200">
@@ -28,7 +28,7 @@
     </div>
 
     <a href="{{ url_for('owner_search') }}"
-       class="text-xs text-gray-500 hover:text-blue-600 underline">
+       class="text-xs text-gray-500 hover:text-indigo-600 underline">
       &larr; Back to results
     </a>
   </div>
@@ -38,7 +38,7 @@
     <div class="flex justify-between items-start">
       <div>
         <div class="flex items-center space-x-2">
-          <h2 class="text-xl font-semibold text-blue-800">{{ clinic['name'] }}</h2>
+          <h2 class="text-xl font-semibold text-blue-900">{{ clinic['name'] }}</h2>
           <span class="text-yellow-500 text-sm">
             ★ {{ '%.1f'|format(clinic['clinic_rating'] or 0) }}
           </span>
@@ -61,7 +61,6 @@
   {% if doctors %}
     <div class="space-y-4">
       {% for d in doctors %}
-        {% set slots = doctor_slots.get(d['id'], []) %}
         <div class="bg-blue-50 rounded-2xl border border-blue-100 px-5 py-4">
           <div class="flex justify-between items-start">
             <div>
@@ -69,7 +68,7 @@
               <p class="text-xs text-gray-500">{{ d['qualifications'] }}</p>
               <p class="text-xs text-gray-500 mt-1">✉ {{ d['email'] }}</p>
               <p class="text-xs text-gray-500 mt-1">
-                Base Fee: <span class="font-semibold text-blue-700">৳{{ d['base_fee'] }}</span>
+                Base Fee: <span class="font-semibold text-indigo-700">৳{{ d['base_fee'] }}</span>
               </p>
               {% if d['weekly_schedule'] %}
                 <p class="text-[11px] text-gray-500 mt-2">
@@ -82,9 +81,10 @@
           <!-- Booking form for this doctor -->
           <form method="post"
                 action="{{ url_for('book_appointment', clinic_id=clinic['id'], doctor_id=d['id']) }}"
-                class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3 items-end bg-white rounded-2xl border border-blue-100 px-4 py-3 time-slot-group">
+                class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3 items-end bg-white rounded-2xl border border-blue-100 px-4 py-3 slot-form"
+                data-doctor-id="{{ d['id'] }}">
 
-            <!-- Pet dropdown -->
+            <!-- Pet -->
             <div>
               <label class="block text-xs text-gray-500 mb-1">Pet</label>
               <select name="pet_id"
@@ -100,44 +100,35 @@
             <div>
               <label class="block text-xs text-gray-500 mb-1">Date</label>
               <input type="date" name="date"
-                     class="w-full border border-blue-200 rounded-full px-3 py-2 text-sm">
+                     class="w-full border border-blue-200 rounded-full px-3 py-2 text-sm date-input">
             </div>
 
             <!-- Time slots -->
             <div class="md:col-span-2">
               <label class="block text-xs text-gray-500 mb-1">Available Time Slots</label>
 
-              {% if slots %}
-                <!-- hidden input to hold the chosen time (HH:MM) -->
-                <input type="hidden" name="time" value="">
+              <!-- hidden input for the selected HH:MM -->
+              <input type="hidden" name="time" class="time-hidden" value="">
 
-                <div class="flex flex-wrap gap-2">
-                  {% for s in slots %}
-                    <button type="button"
-                            class="time-slot-btn px-3 py-1 rounded-full border border-blue-300 text-xs text-blue-700 bg-white hover:bg-blue-50"
-                            data-time="{{ s['start'] }}">
-                      {{ s['label'] }}
-                    </button>
-                  {% endfor %}
-                </div>
+              <!-- where buttons will appear -->
+              <div class="slot-buttons flex flex-wrap gap-2"></div>
 
-                <p class="text-[11px] text-gray-400 mt-1">
-                  Tap a slot to select it. Only these times can be booked.
-                </p>
-              {% else %}
-                <!-- Fallback: if no structured schedule, show simple time input -->
-                <input type="time" name="time"
-                       class="w-full border border-blue-200 rounded-full px-3 py-2 text-sm">
-                <p class="text-[11px] text-gray-400 mt-1">
-                  Clinic has not configured slots yet.
-                </p>
-              {% endif %}
+              <!-- helper text -->
+              <p class="slot-hint text-[11px] text-gray-400 mt-1 hidden">
+                Tap a slot to select it.
+              </p>
+
+              <!-- empty state -->
+              <p class="slot-empty text-[12px] text-gray-500 mt-1 hidden">
+                Pick a date to see available slots.
+              </p>
             </div>
 
             <!-- Submit -->
             <div class="flex justify-end mt-3 md:mt-0">
               <button type="submit"
-                      class="px-4 py-2 w-full md:w-auto rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-sm font-semibold shadow hover:shadow-md transition">
+                      class="submit-btn px-4 py-2 w-full md:w-auto rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-semibold shadow hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled>
                 Book Appointment
               </button>
             </div>
@@ -153,32 +144,87 @@
 
 </div>
 
-<!-- Slot-selection script -->
+<!-- Slot loader: fetches slots after a date is chosen -->
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.time-slot-group').forEach(function (group) {
-      const hiddenInput = group.querySelector('input[name="time"]');
-      if (!hiddenInput) return;
+document.addEventListener('DOMContentLoaded', function () {
+  const forms = document.querySelectorAll('.slot-form');
 
-      const buttons = group.querySelectorAll('.time-slot-btn');
-      buttons.forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          // clear previous selection
-          buttons.forEach(function (b) {
-            b.classList.remove('bg-blue-600', 'text-white');
-            b.classList.add('bg-white', 'text-blue-700');
-          });
+  forms.forEach((form) => {
+    const doctorId   = form.dataset.doctorId;
+    const dateInput  = form.querySelector('.date-input');
+    const slotBox    = form.querySelector('.slot-buttons');
+    const slotHint   = form.querySelector('.slot-hint');
+    const slotEmpty  = form.querySelector('.slot-empty');
+    const timeHidden = form.querySelector('.time-hidden');
+    const submitBtn  = form.querySelector('.submit-btn');
 
-          // set new value
-          hiddenInput.value = btn.dataset.time;
+    // initial state
+    slotBox.innerHTML = '';
+    slotHint.classList.add('hidden');
+    slotEmpty.classList.remove('hidden');
+    submitBtn.disabled = true;
+    timeHidden.value = '';
 
-          // highlight selected
-          btn.classList.remove('bg-white', 'text-blue-700');
-          btn.classList.add('bg-blue-600', 'text-white');
+    // load slots when date changes
+    dateInput.addEventListener('change', async () => {
+      const date = dateInput.value;
+      slotBox.innerHTML = '';
+      timeHidden.value = '';
+      submitBtn.disabled = true;
+
+      if (!date) {
+        slotHint.classList.add('hidden');
+        slotEmpty.classList.remove('hidden');
+        slotEmpty.textContent = 'Pick a date to see available slots.';
+        return;
+      }
+
+      // fetch slots
+      try {
+        const res = await fetch(`/owner/doctor/${doctorId}/slots?date=${encodeURIComponent(date)}`, {
+          headers: { 'Accept': 'application/json' }
         });
-      });
+        const slots = await res.json();
+
+        if (!Array.isArray(slots) || slots.length === 0) {
+          slotHint.classList.add('hidden');
+          slotEmpty.classList.remove('hidden');
+          slotEmpty.textContent = 'No slots available for this date.';
+          return;
+        }
+
+        // render buttons
+        slotEmpty.classList.add('hidden');
+        slotHint.classList.remove('hidden');
+        slots.forEach((t) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.dataset.time = t;
+          btn.className = 'slot-btn px-3 py-1 rounded-full border border-indigo-300 text-xs text-indigo-700 bg-white hover:bg-indigo-50';
+          btn.textContent = t;
+          btn.addEventListener('click', () => {
+            // clear selection
+            form.querySelectorAll('.slot-btn').forEach(b => {
+              b.classList.remove('bg-indigo-600', 'text-white');
+              b.classList.add('bg-white', 'text-indigo-700');
+            });
+            // select
+            btn.classList.remove('bg-white', 'text-indigo-700');
+            btn.classList.add('bg-indigo-600', 'text-white');
+            timeHidden.value = t;
+            submitBtn.disabled = false;
+          });
+          slotBox.appendChild(btn);
+        });
+
+      } catch (e) {
+        slotHint.classList.add('hidden');
+        slotEmpty.classList.remove('hidden');
+        slotEmpty.textContent = 'Could not load slots. Try again.';
+      }
     });
   });
+});
 </script>
 
 {% endblock %}
