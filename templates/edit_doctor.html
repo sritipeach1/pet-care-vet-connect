@@ -1,271 +1,290 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Edit Doctor</title>
-</head>
-<body style="background-color: #ffe4f1; font-family: Arial, sans-serif;">
+{% extends "base.html" %}
+{% block content %}
 
-    <h1>Edit Doctor</h1>
+<h1 class="text-xl font-semibold text-pink-700 mb-2">Edit Doctor</h1>
 
-    {% if doctor %}
-    <p><strong>Current weekly schedule:</strong> {{ doctor['weekly_schedule'] }}</p>
-    {% endif %}
+{% if doctor %}
+  <p class="text-xs text-gray-500 mb-4">
+    <strong class="font-semibold text-gray-700">Current weekly schedule:</strong>
+    <span class="font-mono text-[11px] text-gray-600">
+      {{ doctor['weekly_schedule'] }}
+    </span>
+  </p>
+{% endif %}
 
-    <form method="post"
+<form method="post"
       onsubmit="event.preventDefault(); openDoctorEditModal(this);"
-      style="margin-top: 10px;">
+      class="space-y-3">
 
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Doctor Name</label>
+    <input type="text" name="name" required
+           value="{{ doctor['name'] }}"
+           class="w-full border border-pink-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
+  </div>
 
-        <div style="margin-bottom: 10px;">
-            <label>Doctor Name:</label><br>
-            <input type="text" name="name" required style="width: 100%;"
-                   value="{{ doctor['name'] }}">
-        </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+    <input type="email" name="email" required
+           value="{{ doctor['email'] }}"
+           class="w-full border border-pink-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
+  </div>
 
-        <div style="margin-bottom: 10px;">
-            <label>Email:</label><br>
-            <input type="email" name="email" required style="width: 100%;"
-                   value="{{ doctor['email'] }}">
-        </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Base Fee (Tk)</label>
+    <input type="number" name="base_fee" required
+           value="{{ doctor['base_fee'] }}"
+           class="w-full border border-pink-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
+  </div>
 
-        <div style="margin-bottom: 10px;">
-            <label>Base Fee (TK):</label><br>
-            <input type="number" name="base_fee" required style="width: 100%;"
-                   value="{{ doctor['base_fee'] }}">
-        </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Qualifications</label>
+    <input type="text" name="qualifications" required
+           value="{{ doctor['qualifications'] }}"
+           class="w-full border border-pink-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
+  </div>
 
-        <div style="margin-bottom: 10px;">
-            <label>Qualifications:</label><br>
-            <input type="text" name="qualifications" required style="width: 100%;"
-                   value="{{ doctor['qualifications'] }}">
-        </div>
+  <hr class="my-3">
 
-        <hr style="margin: 15px 0;">
+  <h3 class="text-sm font-semibold text-gray-800">Select / Edit Slot</h3>
+  <p class="text-xs text-gray-500 mb-2">
+    If you want to change slots, tick days and choose new times.
+    If you leave all days empty, the old schedule will be kept.
+  </p>
 
-        <h3>Select / Edit Slot</h3>
-        <p style="font-size: 12px; color: gray;">
-            If you want to change slots, tick days and choose new times.
-            If you leave all days empty, old schedule will be kept.
-        </p>
+  <table class="w-full text-sm border-collapse">
+    <tr class="text-gray-600">
+      <th class="text-left w-10"></th>
+      <th class="text-left">Day</th>
+      <th class="text-left">From</th>
+      <th class="text-left">To</th>
+    </tr>
 
-        <table style="width: 100%; font-size: 14px;">
-            <tr>
-                <th></th>
-                <th>Day</th>
-                <th>From</th>
-                <th>To</th>
-            </tr>
+    <tr class="border-b">
+      <td class="py-2">
+        <input type="checkbox" name="sat_enabled"
+               {% if schedule['sat_start'] %}checked{% endif %}>
+      </td>
+      <td class="py-2">Saturday</td>
+      <td class="py-2">
+        <input type="time" name="sat_start"
+               value="{{ schedule['sat_start'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+      <td class="py-2">
+        <input type="time" name="sat_end"
+               value="{{ schedule['sat_end'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+    </tr>
 
-            <tr>
-                <td>
-                    <input type="checkbox" name="sat_enabled"
-                           {% if schedule['sat_start'] %}checked{% endif %}>
-                </td>
-                <td>Saturday</td>
-                <td>
-                    <input type="time" name="sat_start"
-                           value="{{ schedule['sat_start'] }}">
-                </td>
-                <td>
-                    <input type="time" name="sat_end"
-                           value="{{ schedule['sat_end'] }}">
-                </td>
-            </tr>
+    <tr class="border-b">
+      <td class="py-2">
+        <input type="checkbox" name="sun_enabled"
+               {% if schedule['sun_start'] %}checked{% endif %}>
+      </td>
+      <td class="py-2">Sunday</td>
+      <td class="py-2">
+        <input type="time" name="sun_start"
+               value="{{ schedule['sun_start'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+      <td class="py-2">
+        <input type="time" name="sun_end"
+               value="{{ schedule['sun_end'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+    </tr>
 
-            <tr>
-                <td>
-                    <input type="checkbox" name="sun_enabled"
-                           {% if schedule['sun_start'] %}checked{% endif %}>
-                </td>
-                <td>Sunday</td>
-                <td>
-                    <input type="time" name="sun_start"
-                           value="{{ schedule['sun_start'] }}">
-                </td>
-                <td>
-                    <input type="time" name="sun_end"
-                           value="{{ schedule['sun_end'] }}">
-                </td>
-            </tr>
+    <tr class="border-b">
+      <td class="py-2">
+        <input type="checkbox" name="mon_enabled"
+               {% if schedule['mon_start'] %}checked{% endif %}>
+      </td>
+      <td class="py-2">Monday</td>
+      <td class="py-2">
+        <input type="time" name="mon_start"
+               value="{{ schedule['mon_start'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+      <td class="py-2">
+        <input type="time" name="mon_end"
+               value="{{ schedule['mon_end'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+    </tr>
 
-            <tr>
-                <td>
-                    <input type="checkbox" name="mon_enabled"
-                           {% if schedule['mon_start'] %}checked{% endif %}>
-                </td>
-                <td>Monday</td>
-                <td>
-                    <input type="time" name="mon_start"
-                           value="{{ schedule['mon_start'] }}">
-                </td>
-                <td>
-                    <input type="time" name="mon_end"
-                           value="{{ schedule['mon_end'] }}">
-                </td>
-            </tr>
+    <tr class="border-b">
+      <td class="py-2">
+        <input type="checkbox" name="tue_enabled"
+               {% if schedule['tue_start'] %}checked{% endif %}>
+      </td>
+      <td class="py-2">Tuesday</td>
+      <td class="py-2">
+        <input type="time" name="tue_start"
+               value="{{ schedule['tue_start'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+      <td class="py-2">
+        <input type="time" name="tue_end"
+               value="{{ schedule['tue_end'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+    </tr>
 
-            <tr>
-                <td>
-                    <input type="checkbox" name="tue_enabled"
-                           {% if schedule['tue_start'] %}checked{% endif %}>
-                </td>
-                <td>Tuesday</td>
-                <td>
-                    <input type="time" name="tue_start"
-                           value="{{ schedule['tue_start'] }}">
-                </td>
-                <td>
-                    <input type="time" name="tue_end"
-                           value="{{ schedule['tue_end'] }}">
-                </td>
-            </tr>
+    <tr class="border-b">
+      <td class="py-2">
+        <input type="checkbox" name="wed_enabled"
+               {% if schedule['wed_start'] %}checked{% endif %}>
+      </td>
+      <td class="py-2">Wednesday</td>
+      <td class="py-2">
+        <input type="time" name="wed_start"
+               value="{{ schedule['wed_start'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+      <td class="py-2">
+        <input type="time" name="wed_end"
+               value="{{ schedule['wed_end'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+    </tr>
 
-            <tr>
-                <td>
-                    <input type="checkbox" name="wed_enabled"
-                           {% if schedule['wed_start'] %}checked{% endif %}>
-                </td>
-                <td>Wednesday</td>
-                <td>
-                    <input type="time" name="wed_start"
-                           value="{{ schedule['wed_start'] }}">
-                </td>
-                <td>
-                    <input type="time" name="wed_end"
-                           value="{{ schedule['wed_end'] }}">
-                </td>
-            </tr>
+    <tr class="border-b">
+      <td class="py-2">
+        <input type="checkbox" name="thu_enabled"
+               {% if schedule['thu_start'] %}checked{% endif %}>
+      </td>
+      <td class="py-2">Thursday</td>
+      <td class="py-2">
+        <input type="time" name="thu_start"
+               value="{{ schedule['thu_start'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+      <td class="py-2">
+        <input type="time" name="thu_end"
+               value="{{ schedule['thu_end'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+    </tr>
 
-            <tr>
-                <td>
-                    <input type="checkbox" name="thu_enabled"
-                           {% if schedule['thu_start'] %}checked{% endif %}>
-                </td>
-                <td>Thursday</td>
-                <td>
-                    <input type="time" name="thu_start"
-                           value="{{ schedule['thu_start'] }}">
-                </td>
-                <td>
-                    <input type="time" name="thu_end"
-                           value="{{ schedule['thu_end'] }}">
-                </td>
-            </tr>
+    <tr class="border-b">
+      <td class="py-2">
+        <input type="checkbox" name="fri_enabled"
+               {% if schedule['fri_start'] %}checked{% endif %}>
+      </td>
+      <td class="py-2">Friday</td>
+      <td class="py-2">
+        <input type="time" name="fri_start"
+               value="{{ schedule['fri_start'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+      <td class="py-2">
+        <input type="time" name="fri_end"
+               value="{{ schedule['fri_end'] }}"
+               class="border border-gray-300 rounded px-2 py-1">
+      </td>
+    </tr>
+  </table>
 
-            <tr>
-                <td>
-                    <input type="checkbox" name="fri_enabled"
-                           {% if schedule['fri_start'] %}checked{% endif %}>
-                </td>
-                <td>Friday</td>
-                <td>
-                    <input type="time" name="fri_start"
-                           value="{{ schedule['fri_start'] }}">
-                </td>
-                <td>
-                    <input type="time" name="fri_end"
-                           value="{{ schedule['fri_end'] }}">
-                </td>
-            </tr>
-        </table>
+  <div class="pt-3 flex items-center gap-3">
+    <button type="submit"
+            class="px-5 py-2 rounded-full bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium shadow-sm transition">
+      Save Changes
+    </button>
 
-        <div style="margin-top: 15px;">
-            <button type="submit"
-                    style="padding: 6px 16px; border-radius: 16px; border: none; background-color: #ff4f9a; color: white;">
-                Save Changes
-            </button>
+    <a href="{{ url_for('clinic_dashboard', tab='doctors') }}"
+       class="text-sm text-pink-700 hover:text-pink-900">
+      Cancel
+    </a>
+  </div>
+</form>
 
-            <a href="{{ url_for('clinic_dashboard') }}" style="margin-left: 10px;">Cancel</a>
-        </div>
-    </form>
 <!-- Cute confirmation modal for editing a doctor -->
 <div id="doctor-edit-modal" class="modal-overlay" style="display:none;">
-    <div class="modal-card">
-        <div class="modal-title">Save changes?</div>
-        <div class="modal-text">
-            The updated details will replace the current information for this doctor.
-        </div>
-        <div class="modal-buttons">
-            <button id="doctor-edit-confirm" class="modal-btn-primary">Save</button>
-            <button id="doctor-edit-cancel" class="modal-btn-cancel">Cancel</button>
-        </div>
+  <div class="modal-card">
+    <div class="modal-title">Save changes?</div>
+    <div class="modal-text">
+      The updated details will replace the current information for this doctor.
     </div>
+    <div class="modal-buttons">
+      <button id="doctor-edit-confirm" class="modal-btn-primary">Save</button>
+      <button id="doctor-edit-cancel" class="modal-btn-cancel">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <style>
-    /* you can reuse the same styles; if they already exist on this page, skip this block */
-    .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.25);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 999;
-    }
-    .modal-card {
-        background: #fffdfb;
-        border-radius: 18px;
-        padding: 18px 22px;
-        min-width: 260px;
-        max-width: 340px;
-        border: 1px solid #ffd7b0;
-        box-shadow: 0 10px 24px rgba(0,0,0,0.12);
-        text-align: center;
-    }
-    .modal-title {
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: #c2185b;
-    }
-    .modal-text {
-        font-size: 13px;
-        color: #8c4b6e;
-        margin-bottom: 14px;
-    }
-    .modal-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-    }
-    .modal-btn-primary,
-    .modal-btn-cancel {
-        padding: 6px 14px;
-        border-radius: 16px;
-        border: none;
-        font-size: 13px;
-        cursor: pointer;
-    }
-    .modal-btn-primary {
-        background: #ff4f9a;
-        color: #ffffff;
-    }
-    .modal-btn-cancel {
-        background: #e3e3e3;
-        color: #555;
-    }
+  .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.25);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+  }
+  .modal-card {
+      background: #fffdfb;
+      border-radius: 18px;
+      padding: 18px 22px;
+      min-width: 260px;
+      max-width: 340px;
+      border: 1px solid #ffd7b0;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+      text-align: center;
+  }
+  .modal-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #c2185b;
+  }
+  .modal-text {
+      font-size: 13px;
+      color: #8c4b6e;
+      margin-bottom: 14px;
+  }
+  .modal-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+  }
+  .modal-btn-primary,
+  .modal-btn-cancel {
+      padding: 6px 14px;
+      border-radius: 16px;
+      border: none;
+      font-size: 13px;
+      cursor: pointer;
+  }
+  .modal-btn-primary {
+      background: #ff4f9a;
+      color: #ffffff;
+  }
+  .modal-btn-cancel {
+      background: #e3e3e3;
+      color: #555;
+  }
 </style>
 
 <script>
-    let doctorEditForm = null;
+  let doctorEditForm = null;
 
-    function openDoctorEditModal(form) {
-        doctorEditForm = form;
-        document.getElementById('doctor-edit-modal').style.display = 'flex';
-    }
+  function openDoctorEditModal(form) {
+      doctorEditForm = form;
+      document.getElementById('doctor-edit-modal').style.display = 'flex';
+  }
 
-    document.getElementById('doctor-edit-confirm').onclick = function () {
-        if (doctorEditForm) {
-            doctorEditForm.submit();
-        }
-    };
+  document.getElementById('doctor-edit-confirm').onclick = function () {
+      if (doctorEditForm) {
+          doctorEditForm.submit();
+      }
+  };
 
-    document.getElementById('doctor-edit-cancel').onclick = function () {
-        document.getElementById('doctor-edit-modal').style.display = 'none';
-        doctorEditForm = null;
-    };
+  document.getElementById('doctor-edit-cancel').onclick = function () {
+      document.getElementById('doctor-edit-modal').style.display = 'none';
+      doctorEditForm = null;
+  };
 </script>
 
-</body>
-</html>
+{% endblock %}

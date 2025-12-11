@@ -1,175 +1,141 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Add Doctor</title>
-</head>
-<body style="background-color: #ffe4f1; font-family: Arial, sans-serif;">
+{% extends "base.html" %}
+{% block content %}
 
-    <h1>Add Doctor</h1>
+<h1 class="text-lg font-semibold text-pink-600 mb-1">Add Doctor</h1>
+<p class="text-sm text-gray-500 mb-4">
+  Fill in the details to add a doctor to your clinic dashboard.
+</p>
 
-    <form method="post"
+<form method="post"
       onsubmit="event.preventDefault(); openDoctorSaveModal(this);"
-      style="margin-top: 10px;">
+      class="space-y-3 max-w-xl">
 
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Doctor Name</label>
+    <input type="text" name="name" required
+           class="w-full border border-pink-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
+  </div>
 
-        <div style="margin-bottom: 10px;">
-            <label>Doctor Name:</label><br>
-            <input type="text" name="name" required style="width: 100%;">
-        </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+    <input type="email" name="email" required
+           class="w-full border border-pink-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
+  </div>
 
-        <div style="margin-bottom: 10px;">
-            <label>Email:</label><br>
-            <input type="email" name="email" required style="width: 100%;">
-        </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Base Fee (TK)</label>
+    <input type="number" name="base_fee" required
+           class="w-full border border-pink-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
+  </div>
 
-        <div style="margin-bottom: 10px;">
-            <label>Base Fee (TK):</label><br>
-            <input type="number" name="base_fee" required style="width: 100%;">
-        </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Qualifications</label>
+    <input type="text" name="qualifications" required
+           class="w-full border border-pink-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
+  </div>
 
-        <div style="margin-bottom: 10px;">
-            <label>Qualifications:</label><br>
-            <input type="text" name="qualifications" required style="width: 100%;">
-        </div>
+  <hr class="my-3">
 
-        <hr style="margin: 15px 0;">
+  <h3 class="text-sm font-semibold text-gray-800 mb-1">Weekly Slots</h3>
+  <p class="text-xs text-gray-500 mb-2">
+    Tick the days you work and choose a start and end time.
+  </p>
 
-        <h3>Select / Edit Slot</h3>
-        <p style="font-size: 12px; color: gray;">
-            Tick the days you work and choose a start and end time.
-        </p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-xs border border-gray-100 rounded-lg">
+      <thead class="bg-gray-50">
+      <tr>
+        <th class="px-2 py-1 text-left w-10"></th>
+        <th class="px-2 py-1 text-left">Day</th>
+        <th class="px-2 py-1 text-left">From</th>
+        <th class="px-2 py-1 text-left">To</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% set days = [
+          ('sat', 'Saturday'),
+          ('sun', 'Sunday'),
+          ('mon', 'Monday'),
+          ('tue', 'Tuesday'),
+          ('wed', 'Wednesday'),
+          ('thu', 'Thursday'),
+          ('fri', 'Friday')
+      ] %}
+      {% for key, label in days %}
+      <tr class="odd:bg-white even:bg-gray-50">
+        <td class="px-2 py-1">
+          <input type="checkbox" name="{{ key }}_enabled" class="accent-pink-500">
+        </td>
+        <td class="px-2 py-1">{{ label }}</td>
+        <td class="px-2 py-1">
+          <input type="time" name="{{ key }}_start"
+                 class="border border-gray-200 rounded px-2 py-1 text-xs w-full">
+        </td>
+        <td class="px-2 py-1">
+          <input type="time" name="{{ key }}_end"
+                 class="border border-gray-200 rounded px-2 py-1 text-xs w-full">
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-        <table style="width: 100%; font-size: 14px;">
-            <tr>
-                <th></th>
-                <th>Day</th>
-                <th>From</th>
-                <th>To</th>
-            </tr>
+  <div class="pt-3 flex items-center gap-3">
+    <button type="submit"
+            class="px-6 py-2 rounded-full bg-pink-500 hover:bg-pink-600 text-white text-sm font-semibold shadow-sm">
+      Save Doctor
+    </button>
+    <a href="{{ url_for('clinic_dashboard', tab='doctors') }}"
+       class="text-sm text-gray-600 hover:text-gray-800">
+      Cancel
+    </a>
+  </div>
+</form>
 
-            {% set days = [
-                ('sat', 'Saturday'),
-                ('sun', 'Sunday'),
-                ('mon', 'Monday'),
-                ('tue', 'Tuesday'),
-                ('wed', 'Wednesday'),
-                ('thu', 'Thursday'),
-                ('fri', 'Friday')
-            ] %}
-
-            {% for key, label in days %}
-            <tr>
-                <td>
-                    <input type="checkbox" name="{{ key }}_enabled">
-                </td>
-                <td>{{ label }}</td>
-                <td>
-                    <input type="time" name="{{ key }}_start">
-                </td>
-                <td>
-                    <input type="time" name="{{ key }}_end">
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-
-        <div style="margin-top: 15px;">
-            <button type="submit"
-                    style="padding: 6px 16px; border-radius: 16px; border: none; background-color: #ff4f9a; color: white;">
-                Save Doctor
-            </button>
-
-            <a href="{{ url_for('clinic_dashboard') }}" style="margin-left: 10px;">Cancel</a>
-        </div>
-
-    </form>
-<!-- Cute confirmation modal for adding a doctor -->
-<div id="doctor-save-modal" class="modal-overlay" style="display:none;">
-    <div class="modal-card">
-        <div class="modal-title">Add this doctor?</div>
-        <div class="modal-text">
-            This doctor profile will be added to your clinic dashboard.
-        </div>
-        <div class="modal-buttons">
-            <button id="doctor-save-confirm" class="modal-btn-primary">Save</button>
-            <button id="doctor-save-cancel" class="modal-btn-cancel">Cancel</button>
-        </div>
+<!-- Confirmation modal -->
+<div id="doctor-save-modal"
+     class="fixed inset-0 bg-black/30 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-2xl border border-pink-100 shadow-xl px-5 py-4 max-w-xs w-full text-center">
+    <h2 class="text-sm font-semibold text-pink-700 mb-1">Add this doctor?</h2>
+    <p class="text-xs text-gray-600 mb-4">
+      This doctor profile will be added to your clinic dashboard.
+    </p>
+    <div class="flex justify-center gap-3 text-xs">
+      <button id="doctor-save-confirm"
+              class="px-4 py-1.5 rounded-full bg-pink-500 text-white hover:bg-pink-600">
+        Save
+      </button>
+      <button id="doctor-save-cancel"
+              class="px-4 py-1.5 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">
+        Cancel
+      </button>
     </div>
+  </div>
 </div>
 
-<style>
-    .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.25);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 999;
-    }
-    .modal-card {
-        background: #fffdfb;
-        border-radius: 18px;
-        padding: 18px 22px;
-        min-width: 260px;
-        max-width: 340px;
-        border: 1px solid #ffd7b0;
-        box-shadow: 0 10px 24px rgba(0,0,0,0.12);
-        text-align: center;
-    }
-    .modal-title {
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: #c2185b;
-    }
-    .modal-text {
-        font-size: 13px;
-        color: #8c4b6e;
-        margin-bottom: 14px;
-    }
-    .modal-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-    }
-    .modal-btn-primary,
-    .modal-btn-cancel {
-        padding: 6px 14px;
-        border-radius: 16px;
-        border: none;
-        font-size: 13px;
-        cursor: pointer;
-    }
-    .modal-btn-primary {
-        background: #ff4f9a;
-        color: #ffffff;
-    }
-    .modal-btn-cancel {
-        background: #e3e3e3;
-        color: #555;
-    }
-</style>
-
 <script>
-    let doctorSaveForm = null;
+  let doctorSaveForm = null;
 
-    function openDoctorSaveModal(form) {
-        doctorSaveForm = form;
-        document.getElementById('doctor-save-modal').style.display = 'flex';
-    }
+  function openDoctorSaveModal(form) {
+      doctorSaveForm = form;
+      const modal = document.getElementById('doctor-save-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+  }
 
-    document.getElementById('doctor-save-confirm').onclick = function () {
-        if (doctorSaveForm) {
-            doctorSaveForm.submit();
-        }
-    };
+  document.getElementById('doctor-save-confirm').onclick = function () {
+      if (doctorSaveForm) {
+          doctorSaveForm.submit();
+      }
+  };
 
-    document.getElementById('doctor-save-cancel').onclick = function () {
-        document.getElementById('doctor-save-modal').style.display = 'none';
-        doctorSaveForm = null;
-    };
+  document.getElementById('doctor-save-cancel').onclick = function () {
+      const modal = document.getElementById('doctor-save-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      doctorSaveForm = null;
+  };
 </script>
 
-</body>
-</html>
+{% endblock %}
