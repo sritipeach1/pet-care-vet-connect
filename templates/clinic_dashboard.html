@@ -3,15 +3,12 @@
 
 <div class="flex flex-col md:flex-row justify-between items-center mb-6">
     <div class="text-center md:text-left">
-        <!-- ONE SMALL FONT CHANGE ONLY -->
+        
         <h2 class="text-xl font-semibold text-pink-600">Vet Clinic Dashboard</h2>
         <p class="text-sm text-gray-500">Welcome, {{ clinic['name'] }}</p>
     </div>
 
-    <a href="{{ url_for('logout') }}" 
-       class="mt-4 md:mt-0 border border-pink-300 text-pink-600 hover:bg-pink-50 px-5 py-2 rounded-full text-sm transition">
-        Logout
-    </a>
+   
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

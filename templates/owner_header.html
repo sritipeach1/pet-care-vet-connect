@@ -1,0 +1,21 @@
+<div class="flex justify-between items-center p-4 border-b bg-white shadow-sm">
+
+    <div class="flex items-center gap-3">
+        <img src="{{ url_for('static', filename='logo.png') }}" 
+             alt="Logo" 
+             class="w-10 h-10 rounded-full">
+        <div>
+            <h1 class="text-lg font-bold text-pink-700">PetConnect</h1>
+            <p class="text-sm text-gray-500">Welcome back, {{ owner['name'] }}!</p>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+        <span class="bg-yellow-400 text-black px-3 py-1 rounded-full text-xs font-semibold">
+            Owner
+        </span>
+
+        
+    </div>
+
+</div>

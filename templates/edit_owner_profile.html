@@ -1,159 +1,147 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Edit Owner Profile</title>
+{% extends "base.html" %}
+{% block content %}
 
-    <style>
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.25);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 999;
-        }
-        .modal-card {
-            background: #f4f9ff;
-            border-radius: 18px;
-            padding: 18px 22px;
-            min-width: 260px;
-            max-width: 340px;
-            border: 1px solid #c9dfff;
-            box-shadow: 0 10px 24px rgba(0,0,0,0.12);
-            text-align: center;
-        }
-        .modal-title {
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #1565c0;
-        }
-        .modal-text {
-            font-size: 13px;
-            color: #4a5f80;
-            margin-bottom: 14px;
-        }
-        .modal-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-        .modal-btn-primary,
-        .modal-btn-cancel {
-            padding: 6px 14px;
-            border-radius: 16px;
-            border: none;
-            font-size: 13px;
-            cursor: pointer;
-        }
-        .modal-btn-primary {
-            background: #1e88e5;
-            color: #ffffff;
-        }
-        .modal-btn-cancel {
-            background: #e3e3e3;
-            color: #555;
-        }
-    </style>
-</head>
-<body style="background-color:#e8f6ff;font-family:'Segoe UI',Arial,sans-serif;">
+<h1 class="text-xl font-semibold text-blue-700 mb-2">Edit Owner Profile</h1>
+<p class="text-sm text-gray-500 mb-4">
+  Keep your personal details up to date. Your name, email, and location are shown in your dashboard, and your password is used for login.
+</p>
 
-<div style="max-width:600px;margin:30px auto;background:#f4f9ff;
-            border-radius:24px;padding:22px 26px;
-            box-shadow:0 10px 24px rgba(0,0,0,0.06);">
-    <h1 style="font-size:20px;color:#1565c0;margin-top:0;">
-        Edit Owner Profile
-    </h1>
-    <p style="font-size:13px;color:#6d88a8;margin-top:4px;">
-        Keep your personal details up to date. Your name, email, and location are shown in your dashboard, and your password is used for login.
-    </p>
+{% if owner %}
+<form method="post"
+      onsubmit="event.preventDefault(); openOwnerEditModal(this);"
+      class="space-y-3">
 
-    {% if owner %}
-    <form method="post"
-          onsubmit="event.preventDefault(); openOwnerEditModal(this);"
-          style="margin-top:10px;">
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+    <input type="text" name="name" required
+           value="{{ owner['name'] }}"
+           class="w-full border border-blue-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300">
+  </div>
 
-        <div style="margin-bottom:10px;">
-            <label>Name:</label><br>
-            <input type="text" name="name" required
-                   value="{{ owner['name'] }}"
-                   style="width:100%;padding:6px 8px;border-radius:10px;border:1px solid #c5d7f2;">
-        </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+    <input type="email" name="email" required
+           value="{{ owner['email'] }}"
+           class="w-full border border-blue-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300">
+  </div>
 
-        <div style="margin-bottom:10px;">
-            <label>Email:</label><br>
-            <input type="email" name="email" required
-                   value="{{ owner['email'] }}"
-                   style="width:100%;padding:6px 8px;border-radius:10px;border:1px solid #c5d7f2;">
-        </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+    {% set selected_location = owner['location'] %}
+    <select name="location" required
+            class="w-full border border-blue-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300">
+      {% include 'location_dropdown.html' %}
+    </select>
+  </div>
 
-        <div style="margin-bottom:10px;">
-            <label>Location:</label><br>
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+    <input type="text" name="password" required
+           value="{{ owner['password'] }}"
+           class="w-full border border-blue-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300">
+  </div>
 
-            {% set selected_location = owner['location'] %}
-            <select name="location" required
-                    style="width:100%;padding:6px 8px;border-radius:10px;border:1px solid #c5d7f2;">
-                {% include 'location_dropdown.html' %}
-            </select>
-        </div>
+  <div class="pt-2 flex items-center gap-3">
+    <button type="submit"
+            class="px-5 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-sm transition">
+      Save Changes
+    </button>
 
-
-        <div style="margin-bottom:14px;">
-            <label>Password:</label><br>
-            <input type="text" name="password" required
-                   value="{{ owner['password'] }}"
-                   style="width:100%;padding:6px 8px;border-radius:10px;border:1px solid #c5d7f2;">
-        </div>
-
-        <button type="submit"
-                style="padding:7px 18px;border-radius:999px;border:none;
-                       background:#1e88e5;color:#fff;font-size:13px;">
-            Save Changes
-        </button>
-        <a href="{{ url_for('owner_dashboard', tab='owner') }}"
-           style="margin-left:8px;font-size:13px;text-decoration:none;color:#1565c0;">
-            Cancel
-        </a>
-    </form>
-    {% else %}
-        <p>Owner not found.</p>
-    {% endif %}
-</div>
+    <a href="{{ url_for('owner_dashboard', tab='owner') }}"
+       class="text-sm text-blue-700 hover:text-blue-900">
+      Cancel
+    </a>
+  </div>
+</form>
+{% else %}
+  <p class="text-sm text-gray-500">Owner not found.</p>
+{% endif %}
 
 <!-- Cute confirmation modal for editing owner profile -->
 <div id="owner-edit-modal" class="modal-overlay" style="display:none;">
-    <div class="modal-card">
-        <div class="modal-title">Save changes?</div>
-        <div class="modal-text">
-            The updated details will replace the current information for your profile.
-        </div>
-        <div class="modal-buttons">
-            <button id="owner-edit-confirm" class="modal-btn-primary">Save</button>
-            <button id="owner-edit-cancel" class="modal-btn-cancel">Cancel</button>
-        </div>
+  <div class="modal-card">
+    <div class="modal-title">Save changes?</div>
+    <div class="modal-text">
+      The updated details will replace the current information for your profile.
     </div>
+    <div class="modal-buttons">
+      <button id="owner-edit-confirm" class="modal-btn-primary">Save</button>
+      <button id="owner-edit-cancel" class="modal-btn-cancel">Cancel</button>
+    </div>
+  </div>
 </div>
 
+<style>
+  .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.25);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+  }
+  .modal-card {
+      background: #f4f9ff;
+      border-radius: 18px;
+      padding: 18px 22px;
+      min-width: 260px;
+      max-width: 340px;
+      border: 1px solid #c9dfff;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+      text-align: center;
+  }
+  .modal-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #1565c0;
+  }
+  .modal-text {
+      font-size: 13px;
+      color: #4a5f80;
+      margin-bottom: 14px;
+  }
+  .modal-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+  }
+  .modal-btn-primary,
+  .modal-btn-cancel {
+      padding: 6px 14px;
+      border-radius: 16px;
+      border: none;
+      font-size: 13px;
+      cursor: pointer;
+  }
+  .modal-btn-primary {
+      background: #1e88e5;
+      color: #ffffff;
+  }
+  .modal-btn-cancel {
+      background: #e3e3e3;
+      color: #555;
+  }
+</style>
+
 <script>
-    let ownerEditForm = null;
+  let ownerEditForm = null;
 
-    function openOwnerEditModal(form) {
-        ownerEditForm = form;
-        document.getElementById('owner-edit-modal').style.display = 'flex';
-    }
+  function openOwnerEditModal(form) {
+      ownerEditForm = form;
+      document.getElementById('owner-edit-modal').style.display = 'flex';
+  }
 
-    document.getElementById('owner-edit-confirm').onclick = function () {
-        if (ownerEditForm) {
-            ownerEditForm.submit();
-        }
-    };
+  document.getElementById('owner-edit-confirm').onclick = function () {
+      if (ownerEditForm) {
+          ownerEditForm.submit();
+      }
+  };
 
-    document.getElementById('owner-edit-cancel').onclick = function () {
-        document.getElementById('owner-edit-modal').style.display = 'none';
-        ownerEditForm = null;
-    };
+  document.getElementById('owner-edit-cancel').onclick = function () {
+      document.getElementById('owner-edit-modal').style.display = 'none';
+      ownerEditForm = null;
+  };
 </script>
 
-</body>
-</html>
+{% endblock %}
