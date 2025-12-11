@@ -4,7 +4,7 @@ import sqlite3
 import os
 import uuid
 import re
-
+from flask import jsonify
 
 from datetime import datetime
 
@@ -860,6 +860,12 @@ def generate_test_data():
 # MODULE 2 - Search & Appointment Booking (Sriti)
 # ---------------------------------------------------------
 
+import os
+import re
+import sqlite3
+from datetime import datetime, timedelta
+from flask import jsonify
+
 DB_PATH = os.path.join("instance", "petcare.db")
 
 
@@ -890,6 +896,8 @@ def _get_owner_for_current_user(conn):
     cur.execute("SELECT * FROM owners WHERE user_id = ?", (user_id,))
     return cur.fetchone()
 
+
+# -------------------------- Search --------------------------
 
 @app.route("/owner/search")
 def owner_search():
@@ -967,34 +975,115 @@ def owner_search():
         rating_filter=rating_filter,
     )
 
-def _extract_time_slots(weekly_schedule: str):
-    """
-    Turn a weekly_schedule string into a list of time slots.
 
-    Examples of weekly_schedule formats this can handle:
-      "Mon 12:00 - 20:00"
+# -------------------- Slot parsing & expansion --------------------
+
+DAY_TOKENS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+def _expand_half_hours(start_str: str, end_str: str):
+    """Return ['HH:MM', ...] every 30 min from start (inclusive) to end (exclusive)."""
+    start = datetime.strptime(start_str, "%H:%M")
+    end = datetime.strptime(end_str, "%H:%M")
+    out = []
+    t = start
+    while t < end:
+        out.append(t.strftime("%H:%M"))
+        t += timedelta(minutes=30)
+    return out
+
+
+def _parse_weekly_schedule_by_day(weekly_schedule: str):
+    """
+    Parse a free-text weekly schedule into a dict:
+      {'mon': [('12:00','20:00'), ('09:00','11:00')], 'tue': [...], ...}
+
+    Handles inputs such as:
+      "Mon 12:00-20:00"
       "Sunday:09:00-11:00,14:00-16:00"
       "Tue 09:00-10:00; Wed 14:00-16:00"
-
-    It looks for all HH:MM times and pairs them:
-      [09:00,11:00,14:00,16:00] -> (09:00-11:00), (14:00-16:00)
     """
     if not weekly_schedule:
+        return {}
+
+    text = weekly_schedule.lower() + " __END__"
+
+    # find each day token position
+    positions = []
+    for d in DAY_TOKENS:
+        for m in re.finditer(rf"\b{d}\w*\b", text):  # 'mon' or 'monday'
+            positions.append((m.start(), d))
+    positions.sort()
+
+    chunks = []
+    for i, (pos, day) in enumerate(positions):
+        end_pos = positions[i + 1][0] if i + 1 < len(positions) else text.index(" __END__")
+        chunks.append((day, text[pos:end_pos]))
+
+    out = {d: [] for d in DAY_TOKENS}
+    for day, chunk in chunks:
+        times = re.findall(r"(\d{2}:\d{2})", chunk)
+        for i in range(0, len(times), 2):
+            if i + 1 < len(times):
+                out[day].append((times[i], times[i + 1]))
+
+    return {d: ranges for d, ranges in out.items() if ranges}
+
+
+def _doctor_slots_for_date(conn, doctor_id: int, date_str: str):
+    """
+    Return 30-min available start times (['HH:MM', ...]) for a given doctor on a given date.
+    Filters by the doctor's weekly_schedule AND removes already-booked times that day.
+    """
+    cur = conn.cursor()
+    cur.execute("SELECT weekly_schedule FROM doctors WHERE id = ?", (doctor_id,))
+    row = cur.fetchone()
+    if not row:
         return []
 
-    times = re.findall(r"(\d{2}:\d{2})", weekly_schedule)
+    weekly = (row["weekly_schedule"] or "")
+    schedule_by_day = _parse_weekly_schedule_by_day(weekly)
+
+    # Which weekday?
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        return []
+    weekday = dt.strftime("%a").lower()[:3]  # 'mon'
+
+    if weekday not in schedule_by_day:
+        return []
+
+    # Expand ranges -> 30-min slots
     slots = []
-    for i in range(0, len(times), 2):
-        if i + 1 < len(times):
-            start = times[i]
-            end = times[i + 1]
-            slots.append(
-                {
-                    "start": start,                # value we submit to backend
-                    "label": f"{start} - {end}",   # text shown on the button
-                }
-            )
-    return slots
+    for start, end in schedule_by_day[weekday]:
+        slots.extend(_expand_half_hours(start, end))
+
+    if not slots:
+        return []
+
+    # Remove taken slots for that date
+    cur.execute(
+        """
+        SELECT appointment_date
+        FROM appointments
+        WHERE doctor_id = ?
+          AND appointment_date LIKE ?
+          AND status IN ('pending','approved','completed')
+        """,
+        (doctor_id, f"{date_str}%"),
+    )
+    taken = set()
+    for r in cur.fetchall():
+        try:
+            taken.add(datetime.strptime(r["appointment_date"], "%Y-%m-%d %H:%M").strftime("%H:%M"))
+        except Exception:
+            pass
+
+    return [s for s in slots if s not in taken]
+
+
+# -------------------- Clinic detail + JSON slots --------------------
+
 @app.route("/owner/clinic/<int:clinic_id>")
 def owner_clinic_detail(clinic_id):
     """
@@ -1007,7 +1096,7 @@ def owner_clinic_detail(clinic_id):
     conn = _get_conn()
     cur = conn.cursor()
 
-    # Get clinic
+    # Clinic info + average rating
     cur.execute(
         """
         SELECT
@@ -1021,7 +1110,6 @@ def owner_clinic_detail(clinic_id):
         (clinic_id,),
     )
     clinic = cur.fetchone()
-
     if not clinic:
         conn.close()
         flash("Clinic not found.", "danger")
@@ -1059,20 +1147,39 @@ def owner_clinic_detail(clinic_id):
 
     conn.close()
 
-    # Build a dict: doctor_id -> list of slots
-    doctor_slots = {}
-    for d in doctors:
-        doctor_slots[d["id"]] = _extract_time_slots(d["weekly_schedule"] or "")
-
-
+    # We no longer precompute slots; the page will fetch them for the chosen date.
     return render_template(
         "owner_clinic_detail.html",
         clinic=clinic,
         doctors=doctors,
         pets=pets,
-        doctor_slots=doctor_slots,
+        doctor_slots={},  # kept for backward compatibility if template references it
     )
 
+
+@app.route("/owner/doctor/<int:doctor_id>/slots")
+def owner_doctor_slots(doctor_id):
+    """
+    JSON API: ?date=YYYY-MM-DD  ->  ["09:00","09:30",...]
+    Only for logged-in owners.
+    """
+    guard = _require_owner()
+    if guard:
+        return guard
+
+    date_str = (request.args.get("date") or "").strip()
+    if not date_str:
+        return jsonify([])
+
+    conn = _get_conn()
+    try:
+        slots = _doctor_slots_for_date(conn, doctor_id, date_str)
+        return jsonify(slots)
+    finally:
+        conn.close()
+
+
+# ------------------------- Booking -------------------------
 
 @app.route("/owner/book/<int:clinic_id>/<int:doctor_id>", methods=["POST"])
 def book_appointment(clinic_id, doctor_id):
@@ -1119,9 +1226,7 @@ def book_appointment(clinic_id, doctor_id):
 
     weekly_schedule = (doctor_row["weekly_schedule"] or "").lower()
 
-    # We just check if the 3-letter day code is mentioned in the schedule text.
-    # Example: weekly_schedule = "Mon 12:00-20:00, Wed 10:00-18:00"
-    # dt.strftime("%a") = "Mon" -> "mon" is in weekly_schedule.
+    # Simple weekday presence check (keeps your previous logic)
     day_code = {
         "mon": "mon",
         "tue": "tue",
@@ -1137,17 +1242,14 @@ def book_appointment(clinic_id, doctor_id):
         flash("This doctor is not available on that day. Please choose another date.", "warning")
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
-    # -------- 2) Check that the pet actually belongs to this owner --------
-    cur.execute(
-        "SELECT 1 FROM pets WHERE id = ? AND owner_id = ?",
-        (pet_id, owner["id"]),
-    )
+    # -------- 2) Verify pet belongs to this owner --------
+    cur.execute("SELECT 1 FROM pets WHERE id = ? AND owner_id = ?", (pet_id, owner["id"]))
     if not cur.fetchone():
         conn.close()
         flash("Invalid pet selected.", "danger")
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
-    # -------- 3) Check for an existing appointment with same slot --------
+    # -------- 3) Prevent double booking of same slot --------
     cur.execute(
         """
         SELECT id
@@ -1163,12 +1265,9 @@ def book_appointment(clinic_id, doctor_id):
         flash("Slot is filled, choose another timing.", "danger")
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
-    # -------- 4) Insert new appointment --------
+    # -------- 4) Insert appointment --------
     cur.execute(
-        """
-        INSERT INTO appointments (pet_id, doctor_id, appointment_date, status)
-        VALUES (?, ?, ?, 'pending')
-        """,
+        "INSERT INTO appointments (pet_id, doctor_id, appointment_date, status) VALUES (?, ?, ?, 'pending')",
         (pet_id, doctor_id, appointment_dt),
     )
     conn.commit()
@@ -1176,6 +1275,9 @@ def book_appointment(clinic_id, doctor_id):
 
     flash("Appointment booked! Waiting for clinic confirmation.", "success")
     return redirect(url_for("owner_appointments"))
+
+
+# -------------------- Owner appointments page --------------------
 
 @app.route("/owner/appointments")
 def owner_appointments():
@@ -1217,10 +1319,7 @@ def owner_appointments():
     rows = cur.fetchall()
     conn.close()
 
-    upcoming = []
-    completed = []
-    cancelled = []
-
+    upcoming, completed, cancelled = [], [], []
     for r in rows:
         status = (r["status"] or "").lower()
         if status in ("completed", "done"):
@@ -1236,7 +1335,6 @@ def owner_appointments():
         completed=completed,
         cancelled=cancelled,
     )
-
 
 
 
