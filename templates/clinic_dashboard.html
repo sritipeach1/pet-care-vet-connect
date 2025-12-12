@@ -3,18 +3,12 @@
 
 <div class="flex flex-col md:flex-row justify-between items-center mb-6">
     <div class="text-center md:text-left">
-        <!-- ONE SMALL FONT CHANGE ONLY -->
         <h2 class="text-xl font-semibold text-pink-600">Vet Clinic Dashboard</h2>
         <p class="text-sm text-gray-500">Welcome, {{ clinic['name'] }}</p>
     </div>
-
-    <a href="{{ url_for('logout') }}" 
-       class="mt-4 md:mt-0 border border-pink-300 text-pink-600 hover:bg-pink-50 px-5 py-2 rounded-full text-sm transition">
-        Logout
-    </a>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
     <a href="{{ url_for('clinic_dashboard', tab='profile') }}"
        class="block text-center py-2 rounded-lg font-medium shadow transition
        {{ 'bg-pink-600 text-white' if tab == 'profile' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
@@ -31,11 +25,18 @@
        class="block text-center py-2 rounded-lg font-medium shadow bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200">
         📊 View Analytics
     </a>
+
+    <a href="{{ url_for('clinic_dashboard', tab='appointments') }}"
+       class="block text-center py-2 rounded-lg font-medium shadow transition
+       {{ 'bg-pink-600 text-white' if tab == 'appointments' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
+        📅 Manage Appointments
+    </a>
 </div>
 
 <div class="bg-white shadow-md rounded-lg p-6 border-l-4 border-pink-500 min-h-[450px]">
 
-{% if tab == 'doctors' %}
+  {# -------------------- DOCTORS TAB -------------------- #}
+  {% if tab == 'doctors' %}
 
     <div class="flex justify-between items-center mb-6">
         <h3 class="text-lg font-semibold text-gray-800">Doctor Profiles</h3>
@@ -70,12 +71,18 @@
                     </a>
 
                     <button type="button"
-                        class="w-full bg-red-50 border border-red-100 text-red-600 py-2 rounded hover:bg-red-100 font-medium"
-                        data-delete-url="{{ url_for('delete_doctor_from_dashboard', doctor_id=doctor['id']) }}"
-                        onclick="openDoctorDeleteModal(this);">
+                            class="w-full bg-red-50 border border-red-100 text-red-600 py-2 rounded hover:bg-red-100 font-medium"
+                            data-delete-url="{{ url_for('delete_doctor_from_dashboard', doctor_id=doctor['id']) }}"
+                            onclick="openDoctorDeleteModal(this);">
                       Delete
                     </button>
+                </div>
 
+                <div class="mt-3">
+                    <a href="{{ url_for('clinic_doctor_appointments', doctor_id=doctor['id']) }}"
+                       class="inline-block text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                       View Appointments for this Doctor
+                    </a>
                 </div>
 
             </div>
@@ -89,7 +96,8 @@
         </div>
     {% endif %}
 
-{% elif tab == 'profile' %}
+  {# -------------------- PROFILE TAB -------------------- #}
+  {% elif tab == 'profile' %}
 
     <div class="flex justify-between items-center mb-6">
         <h3 class="text-lg font-semibold text-gray-800">Clinic Details</h3>
@@ -129,14 +137,126 @@
 
     </div>
 
-{% endif %}
+  {# -------------------- APPOINTMENTS TAB -------------------- #}
+  {% elif tab == 'appointments' %}
+
+    <div class="flex justify-between items-center mb-6">
+        <h3 class="text-lg font-semibold text-gray-800">Manage Appointments</h3>
+        <p class="text-xs text-gray-500">
+          Requests for all doctors appear here.
+        </p>
+    </div>
+
+    
+    <div class="mb-2">
+      <h4 class="text-sm font-semibold text-gray-700 mb-2">Requests</h4>
+
+      {% if appointments_requests %}
+        <div class="space-y-3">
+          {% for a in appointments_requests %}
+            {% set s = (a['status'] or '')|lower %}
+            <div class="bg-white border border-yellow-100 rounded-xl px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-sm">
+              <div>
+                <p class="font-semibold text-gray-900">
+                  {{ a['pet_name'] }}
+                  <span class="text-gray-500">({{ a['owner_name'] }})</span>
+                </p>
+
+                <p class="text-xs text-gray-500 mt-0.5">
+                  Doctor:
+                  <span class="font-medium">{{ a['doctor_name'] }}</span>
+                </p>
+
+                <p class="text-[11px] text-gray-600 mt-0.5">
+                  Pet:
+                  {{ a['pet_animal_type'] or 'Unknown type' }}
+                  {% if a['pet_breed'] %}
+                    • Breed {{ a['pet_breed'] }}
+                  {% endif %}
+                  {% if a['pet_gender'] %}
+                    • Gender {{ a['pet_gender'] }}
+                  {% endif %}
+                  {% if a['pet_age'] %}
+                    • Age: {{ a['pet_age'] }}
+                  {% endif %}
+                  {% if a['pet_vaccination_status'] %}
+                    • Vaccination: {{ a['pet_vaccination_status'] }}
+                  {% endif %}
+                </p>
+
+                <p class="text-xs text-gray-500 mt-0.5">
+                  {{ a['appointment_date'] }}
+                </p>
+
+                {% if s == 'reschedule_pending' %}
+                  <p class="text-[11px] text-orange-600 mt-0.5">
+                    Waiting for owner to confirm the new time.
+                  </p>
+                {% endif %}
+
+              </div>
+
+              <div class="flex flex-wrap gap-2 text-xs justify-end">
+                {% if s != 'reschedule_pending' %}
+                  <!-- Approve with cute modal -->
+                  <button type="button"
+                          class="px-3 py-1 rounded-full bg-green-500 hover:bg-green-600 text-white font-medium"
+                          data-action-url="{{ url_for('clinic_appointment_action', appt_id=a['id'], action='approve') }}"
+                          data-action-label="Approve"
+                          onclick="openRequestActionModal(this);">
+                    Approve
+                  </button>
+                {% endif %}
+
+                
+                <button type="button"
+                        class="px-3 py-1 rounded-full bg-red-500 hover:bg-red-600 text-white font-medium"
+                        data-action-url="{{ url_for('clinic_appointment_action', appt_id=a['id'], action='cancel') }}"
+                        data-action-label="Cancel"
+                        onclick="openRequestActionModal(this);">
+                  Cancel
+                </button>
+
+                {% if s != 'reschedule_pending' %}
+                  
+                  <a href="{{ url_for('reschedule_appointment', appt_id=a['id']) }}"
+                     class="px-3 py-1 rounded-full bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-medium text-center">
+                    Reschedule
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-xs text-gray-500 bg-gray-50 border border-dashed border-gray-200 rounded-xl px-4 py-3">
+          No new or pending requests at the moment.
+        </div>
+      {% endif %}
+    </div>
+
+  {% endif %}
 
 </div>
 
-<!-- Hidden form that will actually submit the delete request -->
+
+<form id="request-action-form" method="POST" style="display:none;"></form>
+
+
+<div id="request-action-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-card">
+    <div id="request-action-title" class="modal-title">Are you sure?</div>
+    <div id="request-action-text" class="modal-text"></div>
+    <div class="modal-buttons">
+      <button id="request-action-confirm" class="modal-btn-danger">Yes</button>
+      <button id="request-action-cancel" type="button" class="modal-btn-cancel">No</button>
+    </div>
+  </div>
+</div>
+
+
 <form id="doctor-delete-form" method="POST" style="display:none;"></form>
 
-<!-- Pretty delete confirmation modal for doctors -->
 <div id="doctor-delete-modal" class="modal-overlay" style="display:none;">
     <div class="modal-card">
         <div class="modal-title">Delete this doctor?</div>
@@ -145,7 +265,7 @@
         </div>
         <div class="modal-buttons">
             <button id="doctor-modal-confirm" class="modal-btn-danger">Yes, Delete</button>
-            <button id="doctor-modal-cancel" class="modal-btn-cancel">No, Keep</button>
+            <button id="doctor-modal-cancel" class="modal-btn-cancel" type="button">No, Keep</button>
         </div>
     </div>
 </div>
@@ -222,6 +342,41 @@
     document.getElementById('doctor-modal-cancel').onclick = function () {
         document.getElementById('doctor-delete-modal').style.display = 'none';
         doctorDeleteUrl = null;
+    };
+
+    
+    let requestActionUrl = null;
+
+    function openRequestActionModal(button) {
+        requestActionUrl = button.getAttribute('data-action-url');
+        const label = button.getAttribute('data-action-label') || 'Confirm';
+
+        const titleEl = document.getElementById('request-action-title');
+        const textEl  = document.getElementById('request-action-text');
+
+        if (label === 'Approve') {
+          titleEl.textContent = 'Approve this appointment?';
+          textEl.textContent = 'The appointment will be marked as Approved and visible to the owner.';
+        } else {
+          titleEl.textContent = 'Cancel this appointment?';
+          textEl.textContent = 'The appointment will be marked as Cancelled for both clinic and owner.';
+        }
+
+        document.getElementById('request-action-modal').style.display = 'flex';
+    }
+
+    document.getElementById('request-action-confirm').onclick = function (e) {
+        e.preventDefault();
+        if (requestActionUrl) {
+            const form = document.getElementById('request-action-form');
+            form.action = requestActionUrl;
+            form.submit();
+        }
+    };
+
+    document.getElementById('request-action-cancel').onclick = function () {
+        document.getElementById('request-action-modal').style.display = 'none';
+        requestActionUrl = null;
     };
 </script>
 
