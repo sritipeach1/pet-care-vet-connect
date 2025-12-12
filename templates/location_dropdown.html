@@ -1,8 +1,17 @@
-{% set areas = ['Banasree', 'Gulshan', 'Banani', 'Baridhara', 'Bashabo', 'Dhanmondi', 'Old Dhaka', 'Uttara'] %}
+{% set areas = [
+    'Banani',
+    'Banasree',
+    'Baridhara',
+    'Bashabo',
+    'Dhanmondi',
+    'Gulshan',
+    'Old Dhaka',
+    'Uttara'
+] %}
 
 {% for area in areas %}
-<option value="{{ area }}"
-    {% if selected_location == area %}selected{% endif %}>
-    {{ area }}
-</option>
+  <option value="{{ area }}"
+      {% if selected_location == area %}selected{% endif %}>
+      {{ area }}
+  </option>
 {% endfor %}
