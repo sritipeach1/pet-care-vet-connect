@@ -99,15 +99,18 @@
         {% for p in pets %}
           <li class="bg-gradient-to-r from-white to-blue-50 border border-blue-100 rounded-2xl px-4 py-3 flex gap-4 justify-between">
             <div class="flex gap-3 flex-1">
-              <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-xl shadow">
-                {% set t = (p['animal_type'] or '')|lower %}
-                {% if 'cat' in t %} 🐱
-                {% elif 'dog' in t %} 🐶
-                {% elif 'bird' in t %} 🐦
-                {% elif 'rabbit' in t %} 🐰
-                {% else %} 🐾
+              <div class="w-10 h-10 rounded-full overflow-hidden bg-white shadow flex items-center justify-center">
+                {% if p['photo_filename'] %}
+                  <img src="{{ url_for('static', filename='pet_photos/' ~ p['photo_filename']) }}"
+                      alt="Pet Photo"
+                      class="w-full h-full object-cover">
+                {% else %}
+                  <img src="{{ url_for('static', filename='images/paw-placeholder.png') }}"
+                      alt="Default Paw"
+                      class="w-6 h-6 opacity-70">
                 {% endif %}
               </div>
+
               <div class="text-sm">
                 <p class="font-semibold text-gray-800">{{ p['name'] }}</p>
                 <p class="text-xs text-gray-600 mt-0.5">Age: {{ p['age'] }}</p>

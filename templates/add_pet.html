@@ -7,8 +7,10 @@
 </p>
 
 <form method="post"
+      enctype="multipart/form-data"
       onsubmit="event.preventDefault(); openPetSaveModal(this);"
       class="space-y-3">
+
 
   
   <div>
@@ -63,6 +65,18 @@
       <option value="Pending">Pending</option>
     </select>
   </div>
+  <div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">
+      Pet Photo (optional)
+    </label>
+    <input type="file" name="photo"
+          accept="image/*"
+          class="w-full border border-blue-100 rounded-lg px-3 py-2 text-sm bg-white">
+    <p class="text-xs text-gray-400 mt-1">
+      If you don’t upload a photo, a default paw icon will be shown.
+    </p>
+  </div>
+
 
   <div class="pt-2 flex items-center gap-3">
     <button type="submit"
@@ -77,7 +91,6 @@
   </div>
 </form>
 
-<!-- Cute confirmation modal for saving a new pet -->
 <div id="pet-save-modal" class="modal-overlay" style="display:none;">
   <div class="modal-card">
     <div class="modal-title">Save New Pet?</div>

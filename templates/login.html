@@ -1,12 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- Page background + Center container -->
+
 <div class="min-h-screen flex items-center justify-center bg-pink-50 py-10">
 
     <div class="bg-white shadow-xl rounded-2xl p-10 w-full max-w-md border border-pink-100">
 
-        <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         <div class="mb-4">
@@ -27,13 +26,13 @@
         {% endif %}
         {% endwith %}
 
-        <!-- Title -->
+       
         <h1 class="text-2xl font-bold text-gray-800 mb-2 text-center">Login</h1>
         <p class="text-sm text-gray-500 mb-6 text-center">
           Log in to access your PetConnect dashboard.
         </p>
 
-        <!-- Login Form -->
+     
         <form method="post" class="space-y-4 mb-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -55,14 +54,13 @@
           </button>
         </form>
 
-        <!-- Join Options -->
         <p class="text-xs text-gray-500 mb-3 text-center">
           Don’t have an account? Choose how you want to join:
         </p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
 
-          <!-- Pet Owner card -->
+    
           <a href="{{ url_for('register') }}?role=owner"
              class="block bg-pink-50 hover:bg-pink-100 border border-pink-200 rounded-2xl px-4 py-4 text-center transition shadow-sm">
             <div class="w-14 h-14 mx-auto rounded-full bg-pink-200 flex items-center justify-center mb-2">
@@ -74,7 +72,7 @@
             </p>
           </a>
 
-          <!-- Vet Clinic card -->
+    
           <a href="{{ url_for('register') }}?role=clinic"
              class="block bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-2xl px-4 py-4 text-center transition shadow-sm">
             <div class="w-14 h-14 mx-auto rounded-full bg-purple-200 flex items-center justify-center mb-2">

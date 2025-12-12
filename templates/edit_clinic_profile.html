@@ -47,6 +47,75 @@
       {% include 'location_dropdown.html' %}
     </select>
   </div>
+  <div class="mt-6 border-t border-pink-100 pt-4">
+    <div class="flex items-center gap-2">
+      <input id="clinic-change-password"
+            type="checkbox"
+            class="w-4 h-4 accent-pink-600"
+            onchange="toggleClinicPasswordFields()">
+      <label for="clinic-change-password"
+            class="text-sm font-semibold text-gray-800">
+        Change Password
+      </label>
+    </div>
+
+    <p class="text-xs text-gray-500 mt-1">
+      If you want to change password, tick the checkbox and fill the fields.
+    </p>
+
+    <div id="clinic-password-fields" class="mt-3 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+
+        <!-- Current Password (must be typed manually; prevent autofill) -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+          <input type="password"
+                name="current_password"
+                autocomplete="new-password"
+                readonly
+                onfocus="this.removeAttribute('readonly');"
+                class="w-full border border-pink-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+          <input type="password"
+                name="new_password"
+                autocomplete="new-password"
+                class="w-full border border-pink-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+          <input type="password"
+                name="confirm_password"
+                autocomplete="new-password"
+                class="w-full border border-pink-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300">
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleClinicPasswordFields() {
+      const cb = document.getElementById('clinic-change-password');
+      const box = document.getElementById('clinic-password-fields');
+
+      box.classList.toggle('hidden', !cb.checked);
+
+      if (!cb.checked) {
+        const form = cb.closest('form');
+        if (!form) return;
+
+        ['current_password', 'new_password', 'confirm_password'].forEach((name) => {
+          const input = form.querySelector(`[name="${name}"]`);
+          if (input) input.value = '';
+        });
+      }
+    }
+  </script>
+
 
   <div class="pt-2 flex items-center gap-3">
     <button type="submit"
