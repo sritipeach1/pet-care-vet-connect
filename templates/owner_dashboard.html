@@ -1,545 +1,254 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Pet Owner Dashboard</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: "Segoe UI", Arial, sans-serif;
-            background: linear-gradient(135deg, #e8f6ff, #fdf5ff);
-        }
-        .page {
-            max-width: 1100px;
-            margin: 24px auto 40px;
-            background: #f7fbff;
-            border-radius: 28px;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.06);
-            padding: 24px 30px 32px;
-        }
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 18px;
-        }
-        .brand-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .avatar-circle {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 30% 20%, #ffffff, #90caf9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-        .brand {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .brand-title {
-            font-size: 20px;
-            font-weight: 650;
-            color: #1565c0;
-        }
-        .brand-subtitle {
-            font-size: 13px;
-            color: #6d88a8;
-        }
-        .logout-btn {
-            padding: 6px 18px;
-            border-radius: 20px;
-            border: 1px solid #b4c9ea;
-            background: #ffffff;
-            cursor: pointer;
-            font-size: 13px;
-            color: #466189;
-        }
+{% extends "base.html" %}
+{% block content %}
 
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin: 6px 0 20px;
-        }
-        .tab {
-            padding: 6px 18px;
-            border-radius: 999px;
-            border: none;
-            background: #d7e7ff;
-            font-size: 13px;
-            cursor: pointer;
-            color: #385b8a;
-        }
-        .tab.active {
-            background: #7e57c2;
-            color: #ffffff;
-            box-shadow: 0 4px 10px rgba(126,87,194,0.4);
-        }
+<div class="space-y-5">
 
-        h2 {
-            font-size: 18px;
-            margin: 16px 0 4px;
-            color: #1565c0;
-        }
-        .subtitle {
-            font-size: 13px;
-            color: #6d88a8;
-        }
-        .card {
-            background: #ffffff;
-            border-radius: 20px;
-            padding: 16px 20px;
-            border: 1px dashed #c5d7f2;
-            margin-bottom: 22px;
-        }
-        .profile-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 8px 24px;
-        }
-        .field-label {
-            font-weight: 600;
-            font-size: 13px;
-            color: #4a5f80;
-        }
-        .field-value {
-            font-size: 14px;
-            margin-top: 2px;
-        }
+  
+  <div class="flex items-center justify-between mb-2">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-white to-blue-300 flex items-center justify-center text-xl">
+        🐾
+      </div>
+      <div>
+        <p class="text-lg font-semibold text-blue-700">Pet Owner Dashboard</p>
+        <p class="text-xs text-gray-500">
+          {{ owner['name'] if owner else 'Pet Lover' }}
+        </p>
+      </div>
+    </div>
+  </div>
 
-        .section-title-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 4px;
-            margin-bottom: 12px;
-        }
-        .add-btn {
-            display: inline-block;
-            padding: 7px 18px;
-            border-radius: 999px;
-            background: linear-gradient(135deg, #1e88e5, #64b5f6);
-            color: white;
-            text-decoration: none;
-            font-size: 13px;
-            border: none;
-            box-shadow: 0 4px 12px rgba(30,136,229,0.4);
-        }
+ 
+  <div class="flex flex-wrap gap-2 mb-4">
 
-        .pet-list {
-            list-style: none;
-            padding: 0;
-            margin: 10px 0 0;
-        }
-        .pet-card {
-            background: linear-gradient(135deg, #ffffff, #e3f2fd);
-            border-radius: 22px;
-            border: 1px solid #c9dfff;
-            padding: 14px 18px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            gap: 16px;
-        }
-        .pet-left {
-            flex: 2;
-            display: flex;
-            gap: 10px;
-        }
-        .pet-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-        }
-        .pet-main {
-            flex: 1;
-        }
-        .pet-name {
-            font-weight: 600;
-            margin-bottom: 2px;
-        }
-        .pet-text {
-            font-size: 13px;
-            margin: 1px 0;
-        }
-        .pet-right {
-            flex: 1.2;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            border-left: 1px dashed #c3d4f5;
-            padding-left: 12px;
-        }
-        .badge-row {
-            margin-bottom: 6px;
-        }
-        .badge {
-            display: inline-block;
-            padding: 2px 10px;
-            border-radius: 999px;
-            font-size: 11px;
-            background: #e3f2fd;
-            color: #1565c0;
-            margin-right: 4px;
-        }
-        .badge.vax-completed {
-            background: #e6f4ea;
-            color: #1b5e20;
-        }
-        .badge.vax-pending {
-            background: #fff8e1;
-            color: #f57f17;
-        }
+    <a href="{{ url_for('owner_search') }}"
+       class="px-4 py-1.5 rounded-full text-xs md:text-sm bg-white text-blue-700 border border-blue-100 hover:bg-blue-50 transition no-underline">
+      🔍 Search
+    </a>
 
-        .actions {
-            margin-top: 6px;
-        }
-        .btn-edit, .btn-delete {
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 12px;
-            border: none;
-            cursor: pointer;
-            color: #fff;
-            margin-right: 4px;
-        }
-        .btn-edit {
-            background: #42a5f5;
-        }
-        .btn-delete {
-            background: #ef5350;
-        }
-        .empty-state {
-            font-size: 13px;
-            color: #6d88a8;
-            margin-top: 8px;
-        }
+    <a href="{{ url_for('owner_appointments') }}"
+       class="px-4 py-1.5 rounded-full text-xs md:text-sm bg-white text-blue-700 border border-blue-100 hover:bg-blue-50 transition no-underline">
+      📅 Appointment
+    </a>
 
-        /* Sections */
-        #owner-section, #pets-section {
-            display: none;
-        }
-        #owner-section.active-section,
-        #pets-section.active-section {
-            display: block;
-        }
-    </style>
-</head>
-<body>
+    
+    <button id="tab-owner"
+            type="button"
+            onclick="showOwnerTab('owner')"
+            class="px-4 py-1.5 rounded-full text-xs md:text-sm bg-purple-600 text-white shadow hover:bg-purple-700 transition">
+      Owner Profile
+    </button>
 
-<div class="page">
+    <button id="tab-pets"
+            type="button"
+            onclick="showOwnerTab('pets')"
+            class="px-4 py-1.5 rounded-full text-xs md:text-sm bg-blue-100 text-blue-800 hover:bg-blue-200 transition">
+      Pet Profile
+    </button>
+  </div>
 
-    <!-- Top bar -->
-    <div class="top-bar">
-        <div class="brand-left">
-            <div class="avatar-circle">🐾</div>
-            <div class="brand">
-                <div class="brand-title">Pet Owner Dashboard</div>
-                <div class="brand-subtitle">
-                    {{ owner['name'] if owner else 'Pet Lover' }}
-                </div>
-            </div>
-        </div>
-        <a href="{{ url_for('logout') }}" class="logout-btn" style="text-decoration:none;">
-            Logout
-        </a>
-
+  <div id="owner-section" class="space-y-3">
+    <div class="flex items-center justify-between mb-2">
+      <div>
+        <h2 class="text-lg font-semibold text-blue-700 mb-0.5">Owner Profile</h2>
+        <p class="text-xs text-gray-500">Update your personal details anytime.</p>
+      </div>
+      <a href="{{ url_for('edit_owner_profile') }}"
+         class="px-4 py-1.5 rounded-full bg-blue-600 text-white text-xs md:text-sm font-medium shadow hover:bg-blue-700 no-underline">
+        Edit Profile
+      </a>
     </div>
 
-    <!-- Tabs -->
-    <div class="tabs">
-        <button id="tab-owner" class="tab active" type="button"
-                onclick="showOwnerTab('owner')">Owner Profile</button>
-        <button id="tab-pets" class="tab" type="button"
-                onclick="showOwnerTab('pets')">Pet Profile</button>
+    <div class="bg-white border border-blue-100 rounded-2xl px-5 py-4">
+      {% if owner %}
+        <div class="grid gap-4 md:grid-cols-3 text-sm">
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Name</p>
+            <p class="mt-0.5 text-sm text-gray-800">{{ owner['name'] }}</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</p>
+            <p class="mt-0.5 text-sm text-gray-800">{{ owner['email'] }}</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</p>
+            <p class="mt-0.5 text-sm text-gray-800">{{ owner['location'] }}</p>
+          </div>
+        </div>
+      {% else %}
+        <p class="text-sm text-gray-500">No owner found in the database.</p>
+      {% endif %}
+    </div>
+  </div>
+
+
+  <div id="pets-section" class="hidden space-y-3">
+    <div class="flex items-center justify-between mb-2">
+      <div>
+        <h2 class="text-lg font-semibold text-blue-700 mb-0.5">My Pets</h2>
+        <p class="text-xs text-gray-500">View and manage all your furry friends.</p>
+      </div>
+      <a href="{{ url_for('add_pet_form') }}"
+         class="px-4 py-1.5 rounded-full bg-gradient-to-r from-blue-600 to-blue-400 text-white text-xs md:text-sm font-medium shadow hover:from-blue-700 hover:to-blue-500 no-underline">
+        + Add Pet
+      </a>
     </div>
 
-    <!-- OWNER PROFILE SECTION -->
-    <div id="owner-section" class="active-section">
-        <div class="section-title-row">
-            <div>
-                <h2 style="margin-bottom: 2px;">Owner Profile</h2>
-                <div class="subtitle">Update your personal details anytime</div>
+    {% if pets and pets|length > 0 %}
+      <ul class="space-y-3">
+        {% for p in pets %}
+          <li class="bg-gradient-to-r from-white to-blue-50 border border-blue-100 rounded-2xl px-4 py-3 flex gap-4 justify-between">
+            <div class="flex gap-3 flex-1">
+              <div class="w-10 h-10 rounded-full overflow-hidden bg-white shadow flex items-center justify-center">
+                {% if p['photo_filename'] %}
+                  <img src="{{ url_for('static', filename='pet_photos/' ~ p['photo_filename']) }}"
+                      alt="Pet Photo"
+                      class="w-full h-full object-cover">
+                {% else %}
+                  <img src="{{ url_for('static', filename='images/paw-placeholder.png') }}"
+                      alt="Default Paw"
+                      class="w-6 h-6 opacity-70">
+                {% endif %}
+              </div>
+
+              <div class="text-sm">
+                <p class="font-semibold text-gray-800">{{ p['name'] }}</p>
+                <p class="text-xs text-gray-600 mt-0.5">Age: {{ p['age'] }}</p>
+                <p class="text-xs text-gray-600">Breed: {{ p['breed'] }}</p>
+                <p class="text-xs text-gray-600">Animal: {{ p['animal_type'] }}</p>
+              </div>
             </div>
-            <a href="{{ url_for('edit_owner_profile') }}" class="add-btn">
-                Edit Profile
-            </a>
-        </div>
 
-        <div class="card">
-            {% if owner %}
-                <div class="profile-row">
-                    <div>
-                        <div class="field-label">Name</div>
-                        <div class="field-value">{{ owner['name'] }}</div>
-                    </div>
-                    <div>
-                        <div class="field-label">Email</div>
-                        <div class="field-value">{{ owner['email'] }}</div>
-                    </div>
-                    <div>
-                        <div class="field-label">Location</div>
-                        <div class="field-value">{{ owner['location'] }}</div>
-                    </div>
-                </div>
-            {% else %}
-                <p>No owner found in the database.</p>
-            {% endif %}
-        </div>
-    </div>
+            <div class="flex flex-col justify-between border-l border-dashed border-blue-100 pl-3 min-w-[150px]">
+              <div class="space-x-1 mb-2">
+                <span class="inline-block px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px]">
+                  {{ p['gender'] }}
+                </span>
+                {% if p['vaccination_status'] == 'Completed' %}
+                  <span class="inline-block px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[11px]">
+                    Vaccination: {{ p['vaccination_status'] }}
+                  </span>
+                {% else %}
+                  <span class="inline-block px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-700 text-[11px]">
+                    Vaccination: {{ p['vaccination_status'] }}
+                  </span>
+                {% endif %}
+              </div>
 
-    <!-- PET PROFILE SECTION -->
-    <div id="pets-section">
-        <div class="section-title-row">
-            <div>
-                <h2 style="margin-bottom: 2px;">My Pets</h2>
-                <div class="subtitle">View and manage all your furry friends</div>
+              <div class="flex gap-2">
+                <a href="{{ url_for('edit_pet_form', pet_id=p['id']) }}"
+                   class="flex-1 text-center text-xs bg-blue-500 hover:bg-blue-600 text-white py-1.5 rounded-full font-medium no-underline">
+                  Edit
+                </a>
+
+                <button type="button"
+                        class="flex-1 text-center text-xs bg-red-500 hover:bg-red-600 text-white py-1.5 rounded-full font-medium"
+                        data-delete-url="{{ url_for('delete_pet_from_dashboard', pet_id=p['id']) }}"
+                        onclick="openPetDeleteModal(this);">
+                  Delete
+                </button>
+              </div>
             </div>
-            <a href="{{ url_for('add_pet_form') }}" class="add-btn">+ Add Pet</a>
-        </div>
-
-        {% if pets and pets|length > 0 %}
-            <ul class="pet-list">
-                {% for p in pets %}
-                    <li class="pet-card">
-                        <div class="pet-left">
-                            <div class="pet-avatar">
-                                {% set t = (p['animal_type'] or '')|lower %}
-                                {% if 'cat' in t %}
-                                    🐱
-                                {% elif 'dog' in t %}
-                                    🐶
-                                {% elif 'bird' in t %}
-                                    🐦
-                                {% elif 'rabbit' in t %}
-                                    🐰
-                                {% else %}
-                                    🐾
-                                {% endif %}
-                            </div>
-
-                            <div class="pet-main">
-                                <div class="pet-name">{{ p['name'] }}</div>
-                                <div class="pet-text">Age: {{ p['age'] }}</div>
-                                <div class="pet-text">Breed: {{ p['breed'] }}</div>
-                                <div class="pet-text">Animal: {{ p['animal_type'] }}</div>
-
-                            </div>
-                        </div>
-                        <div class="pet-right">
-                            <div>
-                                <div class="badge-row">
-                                    <span class="badge">{{ p['gender'] }}</span>
-                                    {% if p['vaccination_status'] == 'Completed' %}
-                                        <span class="badge vax-completed">
-                                            Vaccination: {{ p['vaccination_status'] }}
-                                        </span>
-                                    {% else %}
-                                        <span class="badge vax-pending">
-                                            Vaccination: {{ p['vaccination_status'] }}
-                                        </span>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="actions">
-                                <a href="{{ url_for('edit_pet_form', pet_id=p['id']) }}">
-                                    <button type="button" class="btn-edit">Edit</button>
-                                </a>
-
-                                <!-- Button triggers modal, URL stored in data attribute -->
-                                <button type="button"
-                                    class="btn-delete"
-                                    data-delete-url="{{ url_for('delete_pet_from_dashboard', pet_id=p['id']) }}"
-                                    onclick="openPetDeleteModal(this);">
-                                  Delete
-                                </button>
-                            </div>
-
-                        </div>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <div class="empty-state">
-                No pets added yet. Click “+ Add Pet” to add your first companion.
-            </div>
-        {% endif %}
-    </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="text-sm text-gray-500 bg-blue-50 border border-dashed border-blue-100 rounded-xl px-4 py-6 text-center">
+        No pets added yet. Click <span class="font-semibold">“+ Add Pet”</span> to add your first companion.
+      </div>
+    {% endif %}
+  </div>
 
 </div>
 
-<script>
-    function showOwnerTab(which) {
-        const ownerTab = document.getElementById('tab-owner');
-        const petsTab = document.getElementById('tab-pets');
-        const ownerSection = document.getElementById('owner-section');
-        const petsSection = document.getElementById('pets-section');
 
-        if (which === 'owner') {
-            ownerTab.classList.add('active');
-            petsTab.classList.remove('active');
-            ownerSection.classList.add('active-section');
-            petsSection.classList.remove('active-section');
-        } else {
-            petsTab.classList.add('active');
-            ownerTab.classList.remove('active');
-            petsSection.classList.add('active-section');
-            ownerSection.classList.remove('active-section');
-        }
-    }
+<form id="pet-delete-form" method="post" class="hidden"></form>
 
-    // 🔹 On page load, decide which tab is active based on ?tab=...
-    window.addEventListener('DOMContentLoaded', function () {
-        const params = new URLSearchParams(window.location.search);
-        const tab = params.get('tab');
-        if (tab === 'pets') {
-            showOwnerTab('pets');
-        } else {
-            showOwnerTab('owner');
-        }
-    });
-</script>
 
-<!-- Pretty delete confirmation modal for pets -->
-<div id="pet-delete-modal" class="modal-overlay" style="display:none;">
-    <div class="modal-card">
-        <div class="modal-title">Are you sure?</div>
-        <div class="modal-text">
-            This pet will be removed from your profile.
-        </div>
-        <div class="modal-buttons">
-            <button id="pet-modal-confirm" class="modal-btn-danger">Yes, Delete</button>
-            <button id="pet-modal-cancel" class="modal-btn-cancel">No, Cancel</button>
-        </div>
+<div id="pet-delete-modal"
+     class="hidden fixed inset-0 bg-black/30 justify-center items-center z-50">
+  <div class="bg-white rounded-2xl border border-blue-100 shadow-xl px-5 py-4 max-w-xs w-full text-center">
+    <div class="text-sm font-semibold text-blue-700 mb-1">
+      Are you sure?
     </div>
+    <div class="text-xs text-gray-600 mb-3">
+      This pet will be removed from your profile.
+    </div>
+    <div class="flex justify-center gap-3 text-xs">
+      <button id="pet-modal-confirm"
+              class="px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600">
+        Yes, Delete
+      </button>
+      <button id="pet-modal-cancel"
+              class="px-4 py-1.5 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300">
+        No, Cancel
+      </button>
+    </div>
+  </div>
 </div>
 
-<!-- You can reuse the same .modal-* CSS from clinic page (or keep it here too) -->
-
 <script>
-    let petFormToDelete = null;
+  // Tab switching
+  function showOwnerTab(which) {
+      const ownerTab = document.getElementById('tab-owner');
+      const petsTab = document.getElementById('tab-pets');
+      const ownerSection = document.getElementById('owner-section');
+      const petsSection = document.getElementById('pets-section');
 
-    function openPetDeleteModal(form) {
-        petFormToDelete = form;
-        document.getElementById("pet-delete-modal").style.display = "flex";
-    }
+      if (which === 'owner') {
+          ownerTab.classList.add('bg-purple-600','text-white','shadow');
+          ownerTab.classList.remove('bg-blue-100','text-blue-800');
+          petsTab.classList.remove('bg-purple-600','text-white','shadow');
+          petsTab.classList.add('bg-blue-100','text-blue-800');
 
-    document.getElementById("pet-modal-confirm").onclick = function () {
-        if (petFormToDelete) {
-            petFormToDelete.submit();
-        }
-    };
+          ownerSection.classList.remove('hidden');
+          petsSection.classList.add('hidden');
+      } else {
+          petsTab.classList.add('bg-purple-600','text-white','shadow');
+          petsTab.classList.remove('bg-blue-100','text-blue-800');
+          ownerTab.classList.remove('bg-purple-600','text-white','shadow');
+          ownerTab.classList.add('bg-blue-100','text-blue-800');
 
-    document.getElementById("pet-modal-cancel").onclick = function () {
-        document.getElementById("pet-delete-modal").style.display = "none";
-        petFormToDelete = null;
-    };
-</script>
-<!-- Hidden form that will actually submit the delete request -->
-<form id="pet-delete-form" method="post" style="display:none;"></form>
+          petsSection.classList.remove('hidden');
+          ownerSection.classList.add('hidden');
+      }
+  }
 
-<!-- Pretty delete confirmation modal for pets -->
-<div id="pet-delete-modal" class="modal-overlay" style="display:none;">
-    <div class="modal-card">
-        <div class="modal-title">Are you sure?</div>
-        <div class="modal-text">
-            This pet will be removed from your profile.
-        </div>
-        <div class="modal-buttons">
-            <button id="pet-modal-confirm" class="modal-btn-danger">Yes, Delete</button>
-            <button id="pet-modal-cancel" class="modal-btn-cancel">No, Cancel</button>
-        </div>
-    </div>
-</div>
 
-<style>
-    .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.25);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 999;
-    }
-    .modal-card {
-        background: #ffffff;
-        border-radius: 18px;
-        padding: 18px 22px;
-        min-width: 260px;
-        max-width: 340px;
-        border: 1px solid #c9dfff;
-        box-shadow: 0 10px 24px rgba(0,0,0,0.12);
-        text-align: center;
-    }
-    .modal-title {
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: #1565c0;
-    }
-    .modal-text {
-        font-size: 13px;
-        color: #4a5f80;
-        margin-bottom: 14px;
-    }
-    .modal-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-    }
-    .modal-btn-danger,
-    .modal-btn-cancel {
-        padding: 6px 14px;
-        border-radius: 16px;
-        border: none;
-        font-size: 13px;
-        cursor: pointer;
-    }
-    .modal-btn-danger {
-        background: #ef5350;
-        color: #ffffff;
-    }
-    .modal-btn-cancel {
-        background: #e3e3e3;
-        color: #555;
-    }
-</style>
+  window.addEventListener('DOMContentLoaded', function () {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab === 'pets') {
+          showOwnerTab('pets');
+      } else {
+          showOwnerTab('owner');
+      }
+  });
 
-<script>
-    let petDeleteUrl = null;
+ 
+  let petDeleteUrl = null;
 
-    function openPetDeleteModal(button) {
-        petDeleteUrl = button.getAttribute('data-delete-url');
-        document.getElementById('pet-delete-modal').style.display = 'flex';
-    }
+  function openPetDeleteModal(button) {
+      petDeleteUrl = button.getAttribute('data-delete-url');
+      const modal = document.getElementById('pet-delete-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+  }
 
-    document.getElementById('pet-modal-confirm').onclick = function () {
-        if (petDeleteUrl) {
-            const form = document.getElementById('pet-delete-form');
-            form.action = petDeleteUrl;
-            form.submit();
-        }
-    };
+  document.getElementById('pet-modal-confirm').onclick = function () {
+      if (petDeleteUrl) {
+          const form = document.getElementById('pet-delete-form');
+          form.action = petDeleteUrl;
+          form.submit();
+      }
+  };
 
-    document.getElementById('pet-modal-cancel').onclick = function () {
-        document.getElementById('pet-delete-modal').style.display = 'none';
-        petDeleteUrl = null;
-    };
+  document.getElementById('pet-modal-cancel').onclick = function () {
+      const modal = document.getElementById('pet-delete-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      petDeleteUrl = null;
+  };
 </script>
 
-</body>
-</html>
+{% endblock %}

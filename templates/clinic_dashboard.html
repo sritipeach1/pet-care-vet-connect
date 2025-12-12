@@ -147,7 +147,7 @@
         </p>
     </div>
 
-    
+    <!-- REQUESTS (new + reschedule_pending) -->
     <div class="mb-2">
       <h4 class="text-sm font-semibold text-gray-700 mb-2">Requests</h4>
 
@@ -208,7 +208,7 @@
                   </button>
                 {% endif %}
 
-                
+                <!-- Cancel with cute modal -->
                 <button type="button"
                         class="px-3 py-1 rounded-full bg-red-500 hover:bg-red-600 text-white font-medium"
                         data-action-url="{{ url_for('clinic_appointment_action', appt_id=a['id'], action='cancel') }}"
@@ -218,7 +218,7 @@
                 </button>
 
                 {% if s != 'reschedule_pending' %}
-                  
+                  <!-- Reschedule – NO popup -->
                   <a href="{{ url_for('reschedule_appointment', appt_id=a['id']) }}"
                      class="px-3 py-1 rounded-full bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-medium text-center">
                     Reschedule
@@ -239,10 +239,10 @@
 
 </div>
 
-
+<!-- Hidden form for appointment request actions (approve/cancel) -->
 <form id="request-action-form" method="POST" style="display:none;"></form>
 
-
+<!-- Cute modal for Approve/Cancel in Requests -->
 <div id="request-action-modal" class="modal-overlay" style="display:none;">
   <div class="modal-card">
     <div id="request-action-title" class="modal-title">Are you sure?</div>
@@ -254,7 +254,7 @@
   </div>
 </div>
 
-
+<!-- Doctor delete modal (unchanged) -->
 <form id="doctor-delete-form" method="POST" style="display:none;"></form>
 
 <div id="doctor-delete-modal" class="modal-overlay" style="display:none;">
@@ -324,6 +324,7 @@
 </style>
 
 <script>
+    /* Doctor delete modal */
     let doctorDeleteUrl = null;
 
     function openDoctorDeleteModal(button) {
@@ -344,7 +345,7 @@
         doctorDeleteUrl = null;
     };
 
-    
+    /* Requests Approve/Cancel cute modal */
     let requestActionUrl = null;
 
     function openRequestActionModal(button) {
