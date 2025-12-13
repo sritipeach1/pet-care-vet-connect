@@ -66,7 +66,6 @@ def send_email(to_email, subject, body):
                         "credentials.json not found. Download the OAuth client JSON and save it as credentials.json"
                     )
 
-                # This opens the browser ON THE MACHINE running Flask (your laptop)
                 flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
                 creds = flow.run_local_server(port=0)
 
@@ -74,11 +73,15 @@ def send_email(to_email, subject, body):
                 token.write(creds.to_json())
 
         service = build("gmail", "v1", credentials=creds)
-
         msg = EmailMessage()
+
+      
+        msg["From"] = "PetConnect <faria.hoque.tazree@g.bracu.ac.bd>"
+
         msg["To"] = to_email
         msg["Subject"] = subject
         msg.set_content(body)
+
 
         encoded_message = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
         send_body = {"raw": encoded_message}
@@ -92,7 +95,7 @@ def send_email(to_email, subject, body):
         print("=" * 60 + "\n")
 
     except Exception as e:
-        # Fallback so your app never crashes during demo
+        
         print("\n" + "=" * 60)
         print("EMAIL FAILED - FALLING BACK TO CONSOLE PRINT")
         print(f"Reason  : {e}")
@@ -102,7 +105,7 @@ def send_email(to_email, subject, body):
         print(body)
         print("=" * 60 + "\n")
 def send_email_async(to_email, subject, body):
-    # non-blocking email send (prevents loading delay)
+   
     threading.Thread(
         target=send_email,
         args=(to_email, subject, body),
@@ -163,7 +166,7 @@ def send_owner_status_email(owner_email: str, owner_name: str, clinic_name: str,
     subject = f"Appointment Update: {pretty_status}"
     body = f"""Hello {owner_name or "there"},
 
-This is an update regarding your appointment.
+There is an update regarding your appointment.
 
 Clinic: {clinic_name}
 Doctor: {doctor_name}
@@ -177,7 +180,7 @@ Regards,
 Pet Care & Vet-Connect
 """
 
-    # IMPORTANT: send in background so approve/cancel doesn't "hang"
+   
     threading.Thread(
         target=send_email,
         args=(owner_email, subject, body),
@@ -208,7 +211,7 @@ def init_db():
     ).fetchone()
 
     if not admin:
-        password_hash = generate_password_hash("admin123")  # admin password
+        password_hash = generate_password_hash("admin123")  
         conn.execute(
             """
             INSERT INTO users
