@@ -30,13 +30,7 @@ from email.message import EmailMessage
 def send_email(to_email, subject, body):
     """
     Sends a real email via Gmail API using OAuth Desktop credentials.
-
-    Required files in your project folder:
-      - credentials.json  (downloaded from Google Cloud -> OAuth client)
-      - token.json        (auto-created on first successful auth)
-
-    Required pip installs:
-      pip install --upgrade google-api-python-client google-auth google-auth-oauthlib
+    
     """
     if not to_email:
         return
