@@ -882,9 +882,9 @@ def owner_accept_reschedule(appt_id):
             f"Owner  : {appt['owner_name']}\n"
             f"Pet    : {appt['pet_name']}\n"
             f"Doctor : {appt['doctor_name']}\n"
-            f"When   : {appt['appointment_date']}\n"
+            f"Time   : {appt['appointment_date']}\n"
             f"Status : Approved\n\n"
-            "– PetConnect"
+            "– Pet Care & Vet-Connect"
         )
         send_email_async(appt["clinic_email"], subject, body)
 
@@ -947,9 +947,9 @@ def owner_decline_reschedule(appt_id):
             f"Owner  : {appt['owner_name']}\n"
             f"Pet    : {appt['pet_name']}\n"
             f"Doctor : {appt['doctor_name']}\n"
-            f"When   : {appt['appointment_date']}\n"
+            f"Time   : {appt['appointment_date']}\n"
             f"Status : Cancelled\n\n"
-            "– PetConnect"
+            "– Pet Care & Vet-Connect"
         )
         send_email(appt["clinic_email"], subject, body)
 
