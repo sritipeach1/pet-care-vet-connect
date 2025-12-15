@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-5xl mx-auto">
+
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h2 class="text-xl font-semibold text-pink-600">
+        Appointments – {{ doctor['name'] }}
+      </h2>
+      <p class="text-xs text-gray-500">
+        Manage approved, completed and cancelled appointments for this doctor.
+      </p>
+    </div>
+    <a href="{{ url_for('clinic_dashboard', tab='doctors') }}"
+      class="text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200">
+      ← Back to Manage Doctors
+    </a>
+
+  </div>
+
+  <div class="mb-4">
+    <label class="block text-xs font-semibold text-gray-600 mb-1">
+      Search by pet name
+    </label>
+    <input id="pet-search-input" type="text"
+           placeholder="Type to filter… (e.g. Loki)"
+           class="w-full border border-blue-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300">
+    <p class="text-[11px] text-gray-400 mt-1">
+      Search is case-insensitive. Typing “l” will match “Loki”.
+    </p>
+  </div>
+
+  <div class="mb-6">
+    <h3 class="text-sm font-semibold text-gray-700 mb-2">Upcoming (Approved)</h3>
+    {% if upcoming %}
+      <div class="space-y-3">
+        {% for a in upcoming %}
+          <div class="bg-white rounded-2xl border border-blue-100 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-sm"
+               data-pet-card
+               data-pet-name="{{ (a['pet_name'] or '')|lower }}">
+            <div>
+              <p class="font-semibold text-gray-900">
+                {{ a['pet_name'] }} <span class="text-gray-500">({{ a['owner_name'] }})</span>
+              </p>
+              <p class="text-xs text-gray-500 mt-0.5">
+                Date &amp; Time: {{ a['appointment_date'] }}
+              </p>
+              <p class="text-xs text-gray-500 mt-1">
+                Pet:
+                <span class="font-medium text-gray-800">
+                  {{ a['animal_type'] or 'Unknown' }} •
+                  {{ a['breed'] or 'Breed N/A' }} •
+                  {{ a['gender'] or 'Gender N/A' }} •
+                  Age: {{ a['pet_age'] or 'N/A' }} •
+                  Vaccination: {{ a['vaccination_status'] or 'N/A' }}
+                </span>
+              </p>
+            </div>
+
+            <div class="flex flex-col items-end gap-2 text-xs">
+              <span class="px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                Approved
+              </span>
+
+              <div class="flex gap-2">
+                <a href="{{ url_for('reschedule_appointment', appt_id=a['id']) }}"
+                   class="px-3 py-1 rounded-full bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-medium text-center">
+                  Reschedule
+                </a>
+
+                <button type="button"
+                        class="px-3 py-1 rounded-full bg-red-500 hover:bg-red-600 text-white font-medium"
+                        data-cancel-url="{{ url_for('clinic_appointment_action', appt_id=a['id'], action='cancel') }}"
+                        onclick="openApptCancelModal(this);">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-xs text-gray-500 bg-white rounded-2xl border border-dashed border-blue-200 p-4">
+        No upcoming approved appointments.
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="mb-6">
+    <h3 class="text-sm font-semibold text-gray-700 mb-2">Completed</h3>
+    {% if completed %}
+      <div class="space-y-3">
+        {% for a in completed %}
+          <div class="bg-white rounded-2xl border border-green-100 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-sm"
+               data-pet-card
+               data-pet-name="{{ (a['pet_name'] or '')|lower }}">
+            <div>
+              <p class="font-semibold text-gray-900">
+                {{ a['pet_name'] }} <span class="text-gray-500">({{ a['owner_name'] }})</span>
+              </p>
+              <p class="text-xs text-gray-500 mt-0.5">
+                Date &amp; Time: {{ a['appointment_date'] }}
+              </p>
+            </div>
+            <span class="text-xs px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+              Completed
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-xs text-gray-500 bg-white rounded-2xl border border-dashed border-green-200 p-4">
+        No completed appointments yet.
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="mb-4">
+    <h3 class="text-sm font-semibold text-gray-700 mb-2">Cancelled</h3>
+    {% if cancelled %}
+      <div class="space-y-3">
+        {% for a in cancelled %}
+          <div class="bg-white rounded-2xl border border-red-100 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-sm"
+               data-pet-card
+               data-pet-name="{{ (a['pet_name'] or '')|lower }}">
+            <div>
+              <p class="font-semibold text-gray-900">
+                {{ a['pet_name'] }} <span class="text-gray-500">({{ a['owner_name'] }})</span>
+              </p>
+              <p class="text-xs text-gray-500 mt-0.5">
+                Date &amp; Time: {{ a['appointment_date'] }}
+              </p>
+            </div>
+            <span class="text-xs px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">
+              {{ a['status']|capitalize }}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-xs text-gray-500 bg-white rounded-2xl border border-dashed border-red-200 p-4">
+        No cancelled appointments.
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<form id="appt-cancel-form" method="POST" style="display:none;"></form>
+
+<div id="appt-cancel-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-card">
+    <div class="modal-title">Cancel this appointment?</div>
+    <div class="modal-text">
+      This appointment will be marked as <strong>Cancelled</strong> for both clinic and owner.
+    </div>
+    <div class="modal-buttons">
+      <button id="appt-cancel-confirm" class="modal-btn-danger">Yes, Cancel</button>
+      <button id="appt-cancel-close" class="modal-btn-cancel" type="button">Keep Appointment</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.25);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+  }
+  .modal-card {
+      background: #fffdfb;
+      border-radius: 18px;
+      padding: 18px 22px;
+      min-width: 260px;
+      max-width: 340px;
+      border: 1px solid #ffd7b0;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+      text-align: center;
+  }
+  .modal-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #c2185b;
+  }
+  .modal-text {
+      font-size: 13px;
+      color: #8c4b6e;
+      margin-bottom: 14px;
+  }
+  .modal-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+  }
+  .modal-btn-danger,
+  .modal-btn-cancel {
+      padding: 6px 14px;
+      border-radius: 16px;
+      border: none;
+      font-size: 13px;
+      cursor: pointer;
+  }
+  .modal-btn-danger {
+      background: #e53935;
+      color: #ffffff;
+  }
+  .modal-btn-cancel {
+      background: #e3e3e3;
+      color: #555;
+  }
+</style>
+
+<script>
+  (function () {
+    const input = document.getElementById('pet-search-input');
+    if (!input) return;
+
+    const cards = Array.from(document.querySelectorAll('[data-pet-card]'));
+
+    input.addEventListener('input', function () {
+      const q = this.value.toLowerCase().trim();
+      cards.forEach(card => {
+        const name = (card.getAttribute('data-pet-name') || '').toLowerCase();
+        card.style.display = (!q || name.includes(q)) ? '' : 'none';
+      });
+    });
+  })();
+
+  let apptCancelUrl = null;
+
+  function openApptCancelModal(button) {
+    apptCancelUrl = button.getAttribute('data-cancel-url');
+    document.getElementById('appt-cancel-modal').style.display = 'flex';
+  }
+
+  document.getElementById('appt-cancel-confirm').onclick = function (e) {
+    e.preventDefault();
+    if (apptCancelUrl) {
+      const form = document.getElementById('appt-cancel-form');
+      form.action = apptCancelUrl;
+      form.submit();
+    }
+  };
+
+  document.getElementById('appt-cancel-close').onclick = function () {
+    document.getElementById('appt-cancel-modal').style.display = 'none';
+    apptCancelUrl = null;
+  };
+</script>
+
+{% endblock %}

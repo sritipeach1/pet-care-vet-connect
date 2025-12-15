@@ -3,7 +3,7 @@
 
 <div class="max-w-5xl mx-auto">
 
-  <!-- Top nav (same as appointments page) -->
+
   <div class="flex items-center justify-between mb-6">
     <div class="flex space-x-2 bg-blue-100 rounded-full px-1 py-1 text-sm">
       <a href="{{ url_for('owner_search') }}"
@@ -28,7 +28,7 @@
     </div>
   </div>
 
-  <!-- Search card -->
+
   <div class="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6">
     <h2 class="text-lg font-semibold text-blue-800 mb-2">Find a Vet Clinic</h2>
     <p class="text-xs text-gray-500 mb-4">
@@ -37,7 +37,6 @@
 
     <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
 
-      <!-- Search text -->
       <div class="md:col-span-3">
         <label class="block text-xs text-gray-500 mb-1">Search</label>
         <input type="text" name="q"
@@ -46,7 +45,6 @@
                class="w-full border border-blue-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
       </div>
 
-      <!-- Location dropdown -->
       <div>
         <label class="block text-xs text-gray-500 mb-1">Location</label>
         <select name="location"
@@ -58,7 +56,6 @@
         </select>
       </div>
 
-      <!-- Rating dropdown -->
       <div class="md:col-span-4 flex justify-end">
         <select name="rating"
                 class="border border-blue-200 rounded-full px-3 py-2 text-xs mr-3 focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -68,7 +65,6 @@
           <option value="3plus" {% if rating_filter == '3plus' %}selected{% endif %}>3.0+ stars</option>
         </select>
 
-        <!-- Gradient button (Purple → Blue) -->
         <button type="submit"
                 class="px-6 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-sm font-semibold shadow hover:shadow-md transition">
           Search
@@ -77,7 +73,6 @@
     </form>
   </div>
 
-  <!-- Results list -->
   {% if clinics and clinics|length > 0 %}
     <div class="space-y-4">
       {% for c in clinics %}
@@ -106,7 +101,6 @@
             </p>
           </div>
 
-          <!-- Blue-purple button -->
           <a href="{{ url_for('owner_clinic_detail', clinic_id=c['id']) }}"
              class="px-4 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-sm font-semibold shadow hover:shadow-md transition">
             View &amp; Book

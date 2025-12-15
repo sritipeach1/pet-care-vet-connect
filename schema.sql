@@ -1,11 +1,10 @@
--- Drop tables for a clean re-init
+
 DROP TABLE IF EXISTS pets;
 DROP TABLE IF EXISTS owners;
 DROP TABLE IF EXISTS doctors;
 DROP TABLE IF EXISTS clinics;
 DROP TABLE IF EXISTS users;
 
--- Main users table: shared by owners, clinics, admin
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -19,7 +18,6 @@ CREATE TABLE users (
     is_verified INTEGER NOT NULL DEFAULT 0  -- 1 = verified clinic, 0 = pending
 );
 
--- Extra profile for owners (your owner dashboard)
 CREATE TABLE owners (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL UNIQUE,
@@ -30,7 +28,6 @@ CREATE TABLE owners (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Pets for each owner
 CREATE TABLE pets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     owner_id INTEGER NOT NULL,
@@ -40,10 +37,10 @@ CREATE TABLE pets (
     breed TEXT NOT NULL,
     gender TEXT NOT NULL,
     vaccination_status TEXT NOT NULL,
+    photo_filename TEXT,
     FOREIGN KEY (owner_id) REFERENCES owners(id)
 );
 
--- Clinic profile table for clinic users
 CREATE TABLE clinics (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL UNIQUE,
@@ -55,7 +52,6 @@ CREATE TABLE clinics (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Doctors belonging to a clinic
 CREATE TABLE doctors (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     clinic_id INTEGER NOT NULL,
@@ -67,7 +63,6 @@ CREATE TABLE doctors (
     weekly_schedule TEXT NOT NULL,
     FOREIGN KEY (clinic_id) REFERENCES clinics(id)
 );
--- Appointments (for bookings and analytics)
 CREATE TABLE appointments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pet_id INTEGER NOT NULL,

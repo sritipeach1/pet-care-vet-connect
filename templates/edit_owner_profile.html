@@ -34,12 +34,71 @@
     </select>
   </div>
 
-  <div>
-    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-    <input type="text" name="password" required
-           value="{{ owner['password'] }}"
-           class="w-full border border-blue-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300">
-  </div>
+<div class="mt-4 border-t pt-4">
+
+    <div class="flex items-center gap-2 mb-2">
+        <p class="text-sm font-medium text-gray-700">Change Password?</p>
+
+        <label class="inline-flex items-center gap-1 text-sm cursor-pointer">
+            <input type="checkbox" id="toggle-change-password" class="rounded"
+                   onchange="togglePasswordSection()">
+            <span>Yes</span>
+        </label>
+    </div>
+
+    <div id="password-section" class="space-y-3 hidden">
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                Current Password
+            </label>
+            <input type="password"
+                   name="current_password"
+                   class="w-full border rounded-lg px-3 py-2 text-sm"
+                   autocomplete="off">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                New Password
+            </label>
+            <input type="password"
+                   name="new_password"
+                   class="w-full border rounded-lg px-3 py-2 text-sm"
+                   autocomplete="new-password">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+                Re-type New Password
+            </label>
+            <input type="password"
+                   name="confirm_password"
+                   class="w-full border rounded-lg px-3 py-2 text-sm"
+                   autocomplete="new-password">
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePasswordSection() {
+    const checkbox = document.getElementById('toggle-change-password');
+    const section = document.getElementById('password-section');
+
+    if (checkbox.checked) {
+        section.classList.remove('hidden');
+        section.querySelectorAll('input').forEach(inp => inp.required = true);
+    } else {
+        section.classList.add('hidden');
+        section.querySelectorAll('input').forEach(inp => {
+            inp.required = false;
+            inp.value = "";
+        });
+    }
+}
+</script>
+
+
 
   <div class="pt-2 flex items-center gap-3">
     <button type="submit"
@@ -57,7 +116,7 @@
   <p class="text-sm text-gray-500">Owner not found.</p>
 {% endif %}
 
-<!-- Cute confirmation modal for editing owner profile -->
+
 <div id="owner-edit-modal" class="modal-overlay" style="display:none;">
   <div class="modal-card">
     <div class="modal-title">Save changes?</div>
