@@ -39,21 +39,34 @@
           <div class="bg-white rounded-2xl border border-blue-100 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-sm"
                data-pet-card
                data-pet-name="{{ (a['pet_name'] or '')|lower }}">
+
             <div>
-              <p class="font-semibold text-gray-900">
-                {{ a['pet_name'] }} <span class="text-gray-500">({{ a['owner_name'] }})</span>
-              </p>
-              <p class="text-xs text-gray-500 mt-0.5">
-                Date &amp; Time: {{ a['appointment_date'] }}
-              </p>
-              <p class="text-xs text-gray-500 mt-1">
+              <!-- ✅ Photo + name -->
+              <div class="flex items-center gap-3">
+                <img
+                  src="{{ url_for('static', filename=(a['pet_photo'] or 'images/paw-placeholder.png')) }}"
+                  alt="Pet photo"
+                  class="w-12 h-12 rounded-full object-cover border border-blue-100"
+                />
+
+                <div>
+                  <p class="font-semibold text-gray-900">
+                    {{ a['pet_name'] }} <span class="text-gray-500">({{ a['owner_name'] }})</span>
+                  </p>
+                  <p class="text-xs text-gray-500 mt-0.5">
+                    Date &amp; Time: {{ a['appointment_date'] }}
+                  </p>
+                </div>
+              </div>
+
+              <p class="text-xs text-gray-500 mt-2">
                 Pet:
                 <span class="font-medium text-gray-800">
-                  {{ a['animal_type'] or 'Unknown' }} •
-                  {{ a['breed'] or 'Breed N/A' }} •
-                  {{ a['gender'] or 'Gender N/A' }} •
+                  {{ a['pet_animal_type'] or 'Unknown' }} •
+                  {{ a['pet_breed'] or 'Breed N/A' }} •
+                  {{ a['pet_gender'] or 'Gender N/A' }} •
                   Age: {{ a['pet_age'] or 'N/A' }} •
-                  Vaccination: {{ a['vaccination_status'] or 'N/A' }}
+                  Vaccination: {{ a['pet_vaccination_status'] or 'N/A' }}
                 </span>
               </p>
             </div>
@@ -95,14 +108,23 @@
           <div class="bg-white rounded-2xl border border-green-100 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-sm"
                data-pet-card
                data-pet-name="{{ (a['pet_name'] or '')|lower }}">
-            <div>
-              <p class="font-semibold text-gray-900">
-                {{ a['pet_name'] }} <span class="text-gray-500">({{ a['owner_name'] }})</span>
-              </p>
-              <p class="text-xs text-gray-500 mt-0.5">
-                Date &amp; Time: {{ a['appointment_date'] }}
-              </p>
+
+            <div class="flex items-center gap-3">
+              <img
+                src="{{ url_for('static', filename=(a['pet_photo'] or 'images/paw-placeholder.png')) }}"
+                alt="Pet photo"
+                class="w-11 h-11 rounded-full object-cover border border-green-100"
+              />
+              <div>
+                <p class="font-semibold text-gray-900">
+                  {{ a['pet_name'] }} <span class="text-gray-500">({{ a['owner_name'] }})</span>
+                </p>
+                <p class="text-xs text-gray-500 mt-0.5">
+                  Date &amp; Time: {{ a['appointment_date'] }}
+                </p>
+              </div>
             </div>
+
             <span class="text-xs px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
               Completed
             </span>
@@ -124,16 +146,25 @@
           <div class="bg-white rounded-2xl border border-red-100 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-sm"
                data-pet-card
                data-pet-name="{{ (a['pet_name'] or '')|lower }}">
-            <div>
-              <p class="font-semibold text-gray-900">
-                {{ a['pet_name'] }} <span class="text-gray-500">({{ a['owner_name'] }})</span>
-              </p>
-              <p class="text-xs text-gray-500 mt-0.5">
-                Date &amp; Time: {{ a['appointment_date'] }}
-              </p>
+
+            <div class="flex items-center gap-3">
+              <img
+                src="{{ url_for('static', filename=(a['pet_photo'] or 'images/paw-placeholder.png')) }}"
+                alt="Pet photo"
+                class="w-11 h-11 rounded-full object-cover border border-red-100"
+              />
+              <div>
+                <p class="font-semibold text-gray-900">
+                  {{ a['pet_name'] }} <span class="text-gray-500">({{ a['owner_name'] }})</span>
+                </p>
+                <p class="text-xs text-gray-500 mt-0.5">
+                  Date &amp; Time: {{ a['appointment_date'] }}
+                </p>
+              </div>
             </div>
+
             <span class="text-xs px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">
-              {{ a['status']|capitalize }}
+              {{ (a['status'] or '')|replace('_', ' ')|title }}
             </span>
           </div>
         {% endfor %}
