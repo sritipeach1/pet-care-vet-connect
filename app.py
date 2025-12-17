@@ -1858,8 +1858,18 @@ def _doctor_slots_for_date(conn, doctor_id: int, date_str: str):
             pass
 
     # Return only slots NOT taken
-    return [s for s in slots if s not in taken]
+    available = [s for s in slots if s not in taken]
 
+    # ✅ If booking for TODAY, remove slots earlier than current time
+    try:
+        today_str = _dt2.now().strftime("%Y-%m-%d")
+        if date_str == today_str:
+            now_hm = _dt2.now().strftime("%H:%M")
+            available = [s for s in available if s >= now_hm]
+    except Exception:
+        pass
+
+    return available
 
 
 @app.route("/owner/clinic/<int:clinic_id>")
@@ -1925,13 +1935,17 @@ def owner_clinic_detail(clinic_id):
 
     conn.close()
 
+    today = _dt2.now().strftime("%Y-%m-%d")
+
     return render_template(
         "owner_clinic_detail.html",
         clinic=clinic,
         doctors=doctors,
         pets=pets,
-        doctor_slots={}, 
+        doctor_slots={},
+        today=today
     )
+
 
 
 @app.route("/owner/doctor/<int:doctor_id>/slots")
@@ -1980,15 +1994,23 @@ def book_appointment(clinic_id, doctor_id):
         flash("Please select pet, date, and time.", "warning")
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
+    from datetime import datetime
+
     # Parse to datetime so we can check weekday etc.
     try:
         dt = _dt2.strptime(f"{date} {time_str}", "%Y-%m-%d %H:%M")
+
+        if dt < datetime.now().replace(second=0, microsecond=0):
+            flash("You cannot book an appointment in the past.", "danger")
+            return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
+
     except ValueError:
         flash("Please pick a valid date and time.", "warning")
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
     appointment_dt = dt.strftime("%Y-%m-%d %H:%M")
     weekday_short = dt.strftime("%a").lower()  # 'mon', 'tue', ...
+
 
     conn = get_db()
     cur = conn.cursor()
