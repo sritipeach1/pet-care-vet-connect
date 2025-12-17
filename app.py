@@ -1550,7 +1550,7 @@ def admin_view_list(status):
                            total_pages=total_pages)
 
 
-# -- FEATURE 6: ANALYTICS REPORTS (Rayan) --
+#  FEATURE 6: ANALYTICS REPORTS (Rayan) 
 
 @app.route('/clinic/reports')
 def clinic_reports():
@@ -1559,32 +1559,39 @@ def clinic_reports():
         return redirect(url_for("login"))
 
     clinic = get_or_create_clinic_for_current_user()
-    if not clinic:
-        return redirect(url_for("login"))
-
     conn = get_db()
-
-    # --- 1: TOTAL COMPLETED APPOINTMENTS ---
+    
+    # 2. Metric: Total Appointments (Approved AND Completed)
     total_appointments = conn.execute('''
-        SELECT COUNT(*)
+        SELECT COUNT(*) 
         FROM appointments a
         JOIN doctors d ON a.doctor_id = d.id
-        WHERE d.clinic_id = ? AND a.status = 'completed'
+        WHERE d.clinic_id = ? AND a.status IN ('approved', 'completed')
     ''', (clinic['id'],)).fetchone()[0]
 
-    # --- 2: ESTIMATED REVENUE ---
-    revenue = conn.execute('''
-        SELECT SUM(d.base_fee)
+    # 3. Financials: Gross Revenue (Approved AND Completed)
+    raw_revenue = conn.execute('''
+        SELECT SUM(d.base_fee) 
         FROM appointments a
         JOIN doctors d ON a.doctor_id = d.id
-        WHERE d.clinic_id = ? AND a.status = 'completed'
+        WHERE d.clinic_id = ? AND a.status IN ('approved', 'completed')
     ''', (clinic['id'],)).fetchone()[0]
+    
+    # Safety check
+    gross_revenue = raw_revenue if raw_revenue else 0.0
+    
+    # --- Business Logic: 80/20 Split ---
+    clinic_commission = gross_revenue * 0.20  # 20% Profit
+    doctor_payout = gross_revenue * 0.80      # 80% Payout
+    
+    # Rounding
+    gross_revenue = round(gross_revenue, 2)
+    clinic_commission = round(clinic_commission, 2)
+    doctor_payout = round(doctor_payout, 2)
 
-    total_revenue = round(revenue, 2) if revenue else 0.0
-
-    # --- 3: AVERAGE RATING ---
+    # 4. Metric: Average Rating (Only Completed/Rated ones)
     avg_rating = conn.execute('''
-        SELECT AVG(a.rating)
+        SELECT AVG(a.rating) 
         FROM appointments a
         JOIN doctors d ON a.doctor_id = d.id
         WHERE d.clinic_id = ? AND a.rating IS NOT NULL
@@ -1594,43 +1601,14 @@ def clinic_reports():
 
     conn.close()
 
-    return render_template('clinic_reports.html',
+    return render_template('clinic_reports.html', 
                            clinic=clinic,
                            total_appointments=total_appointments,
-                           total_revenue=total_revenue,
+                           gross_revenue=gross_revenue,
+                           clinic_commission=clinic_commission,
+                           doctor_payout=doctor_payout,
                            average_rating=average_rating)
 
-
-# --- HELPER: GENERATE DUMMY DATA (For Testing Only) ---
-
-# @app.route('/generate_test_data')
-# def generate_test_data():
-#     # This route quickly adds fake appointments so you can test the report
-#     if "user_id" not in session or session.get("role") != "clinic":
-#         return redirect(url_for("login"))
-
-#     clinic = get_or_create_clinic_for_current_user()
-#     conn = get_db()
-
-#     # Find a doctor in this clinic
-#     doctor = conn.execute("SELECT id FROM doctors WHERE clinic_id=?", (clinic['id'],)).fetchone()
-    
-#     # If we have a doctor, create fake finished appointments
-#     if doctor:
-#         # 1. Completed appt (Earns money, 5 stars)
-#         conn.execute("INSERT INTO appointments (pet_id, doctor_id, appointment_date, status, rating) VALUES (1, ?, '2025-12-01', 'completed', 5)", (doctor['id'],))
-#         # 2. Completed appt (Earns money, 4 stars)
-#         conn.execute("INSERT INTO appointments (pet_id, doctor_id, appointment_date, status, rating) VALUES (1, ?, '2025-12-02', 'completed', 4)", (doctor['id'],))
-#         # 3. Pending appt (Does NOT earn money yet)
-#         conn.execute("INSERT INTO appointments (pet_id, doctor_id, appointment_date, status, rating) VALUES (1, ?, '2025-12-05', 'pending', NULL)", (doctor['id'],))
-        
-#         conn.commit()
-#         flash("Test data generated! Check your reports now.", "success")
-#     else:
-#         flash("Please add a doctor first.", "warning")
-        
-#     conn.close()
-#     return redirect(url_for('clinic_reports'))
 
 
 # ---------------------------------------------------------

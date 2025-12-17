@@ -7,10 +7,6 @@
             <h2 class="text-3xl font-bold text-gray-800">Analytics Reports</h2>
             <p class="text-gray-500">Performance for {{ clinic['name'] }}</p>
         </div>
-        
-        <!-- <a href="{{ url_for('generate_test_data') }}" class="text-sm text-pink-600 hover:text-pink-800 underline"> -->
-            <!-- + Generate Test Data -->
-        </a>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -18,13 +14,30 @@
         <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
             <h3 class="text-gray-500 text-sm font-bold uppercase mb-2">Total Appointments</h3>
             <p class="text-4xl font-bold text-gray-800">{{ total_appointments }}</p>
-            <p class="text-xs text-gray-400 mt-2">Completed visits only</p>
+            <p class="text-xs text-gray-400 mt-2">Approved & Completed</p>
         </div>
 
         <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
-            <h3 class="text-gray-500 text-sm font-bold uppercase mb-2">Est. Revenue</h3>
-            <p class="text-4xl font-bold text-green-600">৳{{ total_revenue }}</p>
-            <p class="text-xs text-gray-400 mt-2">Based on doctor base fees</p>
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Net Profit (20%)</h3>
+                    <p class="text-3xl font-bold text-gray-800 mt-1">৳{{ clinic_commission }}</p>
+                </div>
+                <div class="bg-green-100 p-2 rounded-full">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+            </div>
+            
+            <div class="mt-4 pt-4 border-t border-gray-100 text-sm space-y-1">
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Gross Vol (Est.):</span>
+                    <span class="font-semibold text-gray-800">৳{{ gross_revenue }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Dr. Payout (80%):</span>
+                    <span class="font-medium text-red-500">- ৳{{ doctor_payout }}</span>
+                </div>
+            </div>
         </div>
 
         <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
@@ -38,7 +51,7 @@
     </div>
 
     <div class="mt-8">
-        <a href="{{ url_for('clinic_dashboard') }}" class="bg-gray-600 text-white px-6 py-3 rounded-full font-bold hover:bg-gray-700 transition">
+        <a href="{{ url_for('clinic_dashboard') }}" class="bg-gray-800 text-white px-6 py-3 rounded-full font-bold hover:bg-gray-700 transition">
             &larr; Back to Dashboard
         </a>
     </div>
