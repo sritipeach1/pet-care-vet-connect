@@ -227,7 +227,8 @@
     input.addEventListener('input', function () {
       const q = this.value.toLowerCase().trim();
       cards.forEach(card => {
-        const name = (card.getAttribute('data-search-term') || '').toLowerCase();
+      // This now looks for the new 'data-search-term' which has both names
+      const name = (card.getAttribute('data-search-term') || '').toLowerCase();
         card.style.display = (!q || name.includes(q)) ? '' : 'none';
       });
     });

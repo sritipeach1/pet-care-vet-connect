@@ -25,12 +25,14 @@ def allowed_file(filename):
 
 import os
 import base64
+import threading
 from email.message import EmailMessage
+
+EMAIL_SIGNATURE = "Regards,\nPet Care & Vet-Connect"
 
 def send_email(to_email, subject, body):
     """
     Sends a real email via Gmail API using OAuth Desktop credentials.
-    
     """
     if not to_email:
         return
@@ -50,7 +52,6 @@ def send_email(to_email, subject, body):
         if os.path.exists(token_path):
             creds = Credentials.from_authorized_user_file(token_path, SCOPES)
 
-        # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
@@ -59,7 +60,6 @@ def send_email(to_email, subject, body):
                     raise FileNotFoundError(
                         "credentials.json not found. Download the OAuth client JSON and save it as credentials.json"
                     )
-
                 flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
                 creds = flow.run_local_server(port=0)
 
@@ -67,15 +67,16 @@ def send_email(to_email, subject, body):
                 token.write(creds.to_json())
 
         service = build("gmail", "v1", credentials=creds)
+
         msg = EmailMessage()
 
-      
+        # ✅ This is the correct, “real” From format for Gmail clients
         msg["From"] = "PetConnect <faria.hoque.tazree@g.bracu.ac.bd>"
 
+        to_email = to_email.strip()
         msg["To"] = to_email
         msg["Subject"] = subject
         msg.set_content(body)
-
 
         encoded_message = base64.urlsafe_b64encode(msg.as_bytes()).decode("utf-8")
         send_body = {"raw": encoded_message}
@@ -89,7 +90,6 @@ def send_email(to_email, subject, body):
         print("=" * 60 + "\n")
 
     except Exception as e:
-        
         print("\n" + "=" * 60)
         print("EMAIL FAILED - FALLING BACK TO CONSOLE PRINT")
         print(f"Reason  : {e}")
@@ -98,8 +98,11 @@ def send_email(to_email, subject, body):
         print("-" * 60)
         print(body)
         print("=" * 60 + "\n")
+
+
+
+
 def send_email_async(to_email, subject, body):
-   
     threading.Thread(
         target=send_email,
         args=(to_email, subject, body),
@@ -414,6 +417,71 @@ def get_appointment_context(appt_id):
 # create DB file if it doesn't exist yet
 if not os.path.exists(app.config["DATABASE"]):
     init_db()
+
+from datetime import datetime
+
+def auto_update_past_appointments(conn):
+    """
+    - approved in the past -> completed
+    - pending/reschedule_pending in the past -> cancelled + notify owner
+    """
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+    cur = conn.cursor()
+
+    # approved -> completed
+    cur.execute("""
+        UPDATE appointments
+        SET status = 'completed'
+        WHERE appointment_date < ?
+          AND LOWER(status) = 'approved'
+    """, (now_str,))
+
+    # 🔹 1) Fetch appointments that will be auto-cancelled
+    rows = cur.execute("""
+        SELECT
+            a.id,
+            a.appointment_date,
+            o.email AS owner_email,
+            o.name  AS owner_name,
+            p.name  AS pet_name,
+            d.name  AS doctor_name,
+            c.name  AS clinic_name
+        FROM appointments a
+        JOIN pets p    ON a.pet_id = p.id
+        JOIN owners o  ON p.owner_id = o.id
+        JOIN doctors d ON a.doctor_id = d.id
+        JOIN clinics c ON d.clinic_id = c.id
+        WHERE a.appointment_date < ?
+          AND LOWER(a.status) IN ('pending', 'reschedule_pending')
+    """, (now_str,)).fetchall()
+
+    # 🔹 2) Cancel them
+    cur.execute("""
+        UPDATE appointments
+        SET status = 'cancelled'
+        WHERE appointment_date < ?
+          AND LOWER(status) IN ('pending', 'reschedule_pending')
+    """, (now_str,))
+
+    conn.commit()
+
+    # 🔹 3) Send email ONCE per appointment
+    for a in rows:
+        send_email_async(
+            a["owner_email"],
+            "Appointment Update: Auto-cancelled",
+            f"""Hello {a['owner_name']},
+
+Your appointment was automatically cancelled because the clinic did not approve it before the scheduled time.
+
+Clinic: {a['clinic_name']}
+Doctor: {a['doctor_name']}
+Pet: {a['pet_name']}
+Time: {_pretty_datetime(a['appointment_date'])}
+
+{EMAIL_SIGNATURE}
+"""
+        )
 
 
 @app.route("/")
@@ -988,6 +1056,13 @@ def clinic_dashboard():
                 a.appointment_date,
                 a.status,
                 p.name               AS pet_name,
+                CASE
+                    WHEN p.photo_filename IS NOT NULL AND p.photo_filename != ''
+                    THEN 'pet_photos/' || p.photo_filename
+                    ELSE 'images/paw-placeholder.png'
+                END AS pet_photo,
+
+
                 p.age                AS age,
                 p.age                AS pet_age,
                 p.animal_type        AS animal_type,
@@ -1005,11 +1080,12 @@ def clinic_dashboard():
             JOIN owners  o ON p.owner_id = o.id
             JOIN doctors d ON a.doctor_id = d.id
             WHERE d.clinic_id = ?
-              AND a.status IN ('pending', 'reschedule_pending')
+            AND a.status IN ('pending', 'reschedule_pending')
             ORDER BY a.appointment_date ASC
             """,
             (clinic["id"],),
         ).fetchall()
+
 
     conn.close()
 
@@ -1023,7 +1099,6 @@ def clinic_dashboard():
 
 @app.route("/clinic/doctor/<int:doctor_id>/appointments")
 def clinic_doctor_appointments(doctor_id):
-    # Must be clinic user
     if "user_id" not in session or session.get("role") != "clinic":
         return redirect(url_for("login"))
 
@@ -1035,18 +1110,20 @@ def clinic_doctor_appointments(doctor_id):
     conn = get_db()
     cur = conn.cursor()
 
+    # ✅ Auto-move past appointments before loading lists
+    auto_update_past_appointments(conn)
+
     # Make sure this doctor belongs to this clinic
-    cur.execute(
+    doctor = cur.execute(
         "SELECT * FROM doctors WHERE id = ? AND clinic_id = ?",
         (doctor_id, clinic["id"]),
-    )
-    doctor = cur.fetchone()
+    ).fetchone()
+
     if not doctor:
         conn.close()
         flash("Doctor not found for this clinic.", "danger")
         return redirect(url_for("clinic_dashboard", tab="appointments"))
 
-    # Optional search by pet name
     q = (request.args.get("q") or "").strip()
     params = [doctor_id]
     where_extra = ""
@@ -1054,7 +1131,7 @@ def clinic_doctor_appointments(doctor_id):
         where_extra = " AND LOWER(p.name) LIKE ?"
         params.append(f"%{q.lower()}%")
 
-    cur.execute(
+    rows = cur.execute(
         f"""
         SELECT
             a.id,
@@ -1062,15 +1139,16 @@ def clinic_doctor_appointments(doctor_id):
             a.status,
             a.rating,
             p.name               AS pet_name,
-            p.age                AS age,
+            CASE
+                WHEN p.photo_filename IS NOT NULL AND p.photo_filename != ''
+                THEN 'pet_photos/' || p.photo_filename
+                ELSE 'images/paw-placeholder.png'
+            END AS pet_photo,
+
             p.age                AS pet_age,
-            p.animal_type        AS animal_type,
             p.animal_type        AS pet_animal_type,
-            p.breed              AS breed,
             p.breed              AS pet_breed,
-            p.gender             AS gender,
             p.gender             AS pet_gender,
-            p.vaccination_status AS vaccination_status,
             p.vaccination_status AS pet_vaccination_status,
             o.name               AS owner_name,
             d.name               AS doctor_name
@@ -1083,28 +1161,24 @@ def clinic_doctor_appointments(doctor_id):
         ORDER BY a.appointment_date ASC
         """,
         params,
-    )
+    ).fetchall()
 
-    rows = cur.fetchall()
     conn.close()
 
-    # Split into sections for tabs/cards
-    requests = []
-    upcoming = []
-    completed = []
-    cancelled = []
+    # Split into sections
+    requests, upcoming, completed, cancelled = [], [], [], []
 
     for r in rows:
         status = (r["status"] or "").lower()
 
         if status in ("pending", "reschedule_pending"):
-            requests.append(r)          # still not decided
-        elif status in ("approved",):
-            upcoming.append(r)         # approved future visits
+            requests.append(r)
+        elif status == "approved":
+            upcoming.append(r)
         elif status in ("completed", "done"):
-            completed.append(r)        # finished ones
+            completed.append(r)
         elif status in ("clinic_cancelled", "owner_cancelled", "cancelled", "canceled"):
-            cancelled.append(r)        # any kind of cancel
+            cancelled.append(r)
 
     return render_template(
         "clinic_doctor_appointments.html",
@@ -1116,6 +1190,7 @@ def clinic_doctor_appointments(doctor_id):
         completed=completed,
         cancelled=cancelled,
     )
+
 
 @app.route("/clinic/appointment/<int:appt_id>/<action>", methods=["POST"])
 def clinic_appointment_action(appt_id, action):
@@ -1345,12 +1420,14 @@ def clinic_appointments():
 
 @app.route("/clinic/appointment/<int:appt_id>/reschedule", methods=["GET", "POST"])
 def reschedule_appointment(appt_id):
+    # ✅ Must be logged in as clinic
     if "user_id" not in session or session.get("role") != "clinic":
         return redirect(url_for("login"))
 
     conn = get_db()
     cur = conn.cursor()
 
+    # ✅ Fetch appointment + doctor_id
     cur.execute(
         """
         SELECT
@@ -1374,48 +1451,67 @@ def reschedule_appointment(appt_id):
         flash("Appointment not found.", "danger")
         return redirect(url_for("clinic_dashboard", tab="appointments"))
 
+    # ✅ Used by date input min=""
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    # ---------------- POST: propose new time ----------------
     if request.method == "POST":
-        new_date = request.form.get("new_date")
-        new_time = request.form.get("new_time")
+        new_date = (request.form.get("new_date") or "").strip()
+        new_time = (request.form.get("new_time") or "").strip()
 
         if not new_date or not new_time:
-            flash("Please choose both date and time.", "warning")
             conn.close()
+            flash("Please choose both date and time.", "warning")
             return redirect(url_for("reschedule_appointment", appt_id=appt_id))
 
         try:
             dt = datetime.strptime(f"{new_date} {new_time}", "%Y-%m-%d %H:%M")
         except ValueError:
-            flash("Invalid date or time format.", "warning")
             conn.close()
+            flash("Invalid date or time format.", "warning")
+            return redirect(url_for("reschedule_appointment", appt_id=appt_id))
+
+        # ✅ Block rescheduling to past date/time (including earlier today)
+        if dt < datetime.now().replace(second=0, microsecond=0):
+            conn.close()
+            flash("You cannot reschedule to a past time.", "danger")
             return redirect(url_for("reschedule_appointment", appt_id=appt_id))
 
         new_dt_str = dt.strftime("%Y-%m-%d %H:%M")
 
+        # ✅ Update appointment
         cur.execute(
-            "UPDATE appointments SET appointment_date = ?, status = 'reschedule_pending' WHERE id = ?",
+            """
+            UPDATE appointments
+            SET appointment_date = ?, status = 'reschedule_pending'
+            WHERE id = ?
+            """,
             (new_dt_str, appt_id),
         )
         conn.commit()
 
+        # ✅ Email owner (use your pretty email helper)
         ctx = _fetch_email_context(conn, appt_id)
         if ctx and ctx.get("owner_email"):
-            send_owner_status_email(
-                owner_email=ctx["owner_email"],
-                owner_name=ctx.get("owner_name"),
-                clinic_name=ctx.get("clinic_name"),
-                doctor_name=ctx.get("doctor_name"),
-                pet_name=ctx.get("pet_name"),
-                appt_dt=new_dt_str,
-                status="reschedule_pending",
-            )
+            try:
+                send_owner_status_email(
+                    owner_email=ctx["owner_email"],
+                    owner_name=ctx.get("owner_name"),
+                    clinic_name=ctx.get("clinic_name"),
+                    doctor_name=ctx.get("doctor_name"),
+                    pet_name=ctx.get("pet_name"),
+                    appt_dt=new_dt_str,
+                    status="reschedule_pending",
+                )
+            except Exception as e:
+                print("Email error:", e)
 
         conn.close()
         flash("New time proposed. Waiting for owner confirmation.", "info")
         return redirect(url_for("clinic_dashboard", tab="appointments"))
 
-
-    selected_date = request.args.get("date")  # optional
+    # ---------------- GET: show slots for selected date ----------------
+    selected_date = (request.args.get("date") or "").strip()
     available_slots = []
 
     if selected_date:
@@ -1425,9 +1521,11 @@ def reschedule_appointment(appt_id):
     return render_template(
         "reschedule_form.html",
         appointment=appt,
-        selected_date=selected_date,
+        selected_date=selected_date or None,
         available_slots=available_slots,
+        today=today,  # REQUIRED so past dates can’t be selected in HTML
     )
+
 
 
 @app.route("/clinic/profile/edit", methods=["GET", "POST"])
@@ -1781,28 +1879,32 @@ def _parse_weekly_schedule_by_day(weekly_schedule: str):
 def _doctor_slots_for_date(conn, doctor_id: int, date_str: str):
     """
     Return 30-min available start times (['HH:MM', ...]) for a given doctor on a given date.
-    Filters by the doctor's weekly_schedule AND removes already-booked or rescheduled times.
+    Filters by weekly schedule, removes booked/rescheduled times,
+    and removes past times if date is today.
     """
     cur = conn.cursor()
 
-    cur.execute("SELECT weekly_schedule FROM doctors WHERE id = ?", (doctor_id,))
+    cur.execute(
+        "SELECT weekly_schedule FROM doctors WHERE id = ?",
+        (doctor_id,)
+    )
     row = cur.fetchone()
     if not row:
         return []
 
-    weekly = (row["weekly_schedule"] or "")
+    weekly = row["weekly_schedule"] or ""
     schedule_by_day = _parse_weekly_schedule_by_day(weekly)
 
     try:
-        dt = _dt2.strptime(date_str, "%Y-%m-%d")
+        day_dt = _dt2.strptime(date_str, "%Y-%m-%d")
     except ValueError:
         return []
 
-    weekday = dt.strftime("%a").lower()[:3]  
-
+    weekday = day_dt.strftime("%a").lower()[:3]  # mon, tue, wed
     if weekday not in schedule_by_day:
         return []
 
+    # Expand schedule → 30-min slots
     slots = []
     for start, end in schedule_by_day[weekday]:
         slots.extend(_expand_half_hours(start, end))
@@ -1810,6 +1912,7 @@ def _doctor_slots_for_date(conn, doctor_id: int, date_str: str):
     if not slots:
         return []
 
+    # Fetch already taken slots
     cur.execute(
         """
         SELECT appointment_date
@@ -1830,14 +1933,23 @@ def _doctor_slots_for_date(conn, doctor_id: int, date_str: str):
     taken = set()
     for r in cur.fetchall():
         try:
-            t = _dt2.strptime(r["appointment_date"], "%Y-%m-%d %H:%M").strftime("%H:%M")
-            taken.add(t)
+            hm = _dt2.strptime(
+                r["appointment_date"], "%Y-%m-%d %H:%M"
+            ).strftime("%H:%M")
+            taken.add(hm)
         except Exception:
             pass
 
-    # Return only slots NOT taken
-    return [s for s in slots if s not in taken]
+    # Remove taken slots
+    available = [s for s in slots if s not in taken]
 
+    # Remove past times if date is today
+    today_str = _dt2.now().strftime("%Y-%m-%d")
+    if date_str == today_str:
+        now_hm = _dt2.now().strftime("%H:%M")
+        available = [s for s in available if s > now_hm]
+
+    return available
 
 
 @app.route("/owner/clinic/<int:clinic_id>")
@@ -1903,13 +2015,17 @@ def owner_clinic_detail(clinic_id):
 
     conn.close()
 
+    today = _dt2.now().strftime("%Y-%m-%d")
+
     return render_template(
         "owner_clinic_detail.html",
         clinic=clinic,
         doctors=doctors,
         pets=pets,
-        doctor_slots={}, 
+        doctor_slots={},
+        today=today
     )
+
 
 
 @app.route("/owner/doctor/<int:doctor_id>/slots")
@@ -1958,15 +2074,23 @@ def book_appointment(clinic_id, doctor_id):
         flash("Please select pet, date, and time.", "warning")
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
+    from datetime import datetime
+
     # Parse to datetime so we can check weekday etc.
     try:
         dt = _dt2.strptime(f"{date} {time_str}", "%Y-%m-%d %H:%M")
+
+        if dt < datetime.now().replace(second=0, microsecond=0):
+            flash("You cannot book an appointment in the past.", "danger")
+            return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
+
     except ValueError:
         flash("Please pick a valid date and time.", "warning")
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
     appointment_dt = dt.strftime("%Y-%m-%d %H:%M")
     weekday_short = dt.strftime("%a").lower()  # 'mon', 'tue', ...
+
 
     conn = get_db()
     cur = conn.cursor()
@@ -2085,6 +2209,8 @@ def owner_appointments():
         return guard
 
     conn = get_db()
+    auto_update_past_appointments(conn)
+
     cur = conn.cursor()
 
     owner = _get_owner_for_current_user(conn)

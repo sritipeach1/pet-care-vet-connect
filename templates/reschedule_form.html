@@ -6,7 +6,7 @@
     display: none;
   }
   .slot-input:checked + span {
-    background: #ec4899;          
+    background: #ec4899;
     color: #ffffff;
     border-color: #ec4899;
   }
@@ -18,6 +18,8 @@
 </p>
 
 <div class="bg-white shadow-md rounded-lg p-6 border-l-4 border-pink-500 max-w-xl">
+
+  <!-- Appointment info -->
   <div class="mb-4 text-sm text-gray-700">
     <p class="font-semibold">
       {{ appointment['pet_name'] }}
@@ -31,16 +33,21 @@
     </p>
   </div>
 
+  <!-- DATE PICKER -->
   <form method="get" class="space-y-3 mb-4">
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
       <input type="date" name="date"
              value="{{ selected_date or '' }}"
+             min="{{ today }}"
              class="w-full border border-pink-100 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
              required>
+             
     </div>
+
     <button type="submit"
-            class="px-4 py-2 rounded-full bg-pink-500 hover:bg-pink-600 text-white text-xs font-medium shadow-sm">
+            class="px-4 py-2 rounded-full bg-pink-500 hover:bg-pink-600
+                   text-white text-xs font-medium shadow-sm">
       Show Available Slots
     </button>
   </form>
@@ -50,36 +57,43 @@
       <input type="hidden" name="new_date" value="{{ selected_date }}">
 
       <div>
-        <p class="text-sm font-medium text-gray-700 mb-2">
-          Available Time Slots for {{ selected_date }}
-        </p>
+        
 
         {% if available_slots %}
           <div class="flex flex-wrap gap-2">
             {% for t in available_slots %}
               <label class="cursor-pointer">
-                <input type="radio" name="new_time" value="{{ t }}" class="slot-input" required>
-                <span class="inline-block px-3 py-1 rounded-full border text-xs
-                             border-pink-300 text-pink-700 bg-pink-50 hover:bg-pink-100">
+                <input type="radio"
+                       name="new_time"
+                       value="{{ t }}"
+                       class="slot-input"
+                       required>
+                <span class="inline-block px-3 py-1 rounded-full border
+                             border-pink-300 text-pink-700 bg-pink-50
+                             hover:bg-pink-100 text-xs">
                   {{ t }}
                 </span>
               </label>
             {% endfor %}
           </div>
+
           <p id="selected-time-text" class="text-xs text-gray-500 mt-2">
             No time selected yet.
           </p>
         {% else %}
           <p class="text-xs text-red-500">
-            No free slots for this date based on the doctor's weekly schedule and existing bookings.
+            No available slots for this date.
           </p>
         {% endif %}
       </div>
 
       <div class="pt-2 flex items-center gap-3">
         <button type="submit"
-                class="px-5 py-2 rounded-full bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium shadow-sm transition"
-                {% if not available_slots %}disabled style="opacity:0.6;cursor:not-allowed"{% endif %}>
+                class="px-5 py-2 rounded-full bg-pink-600 hover:bg-pink-700
+                       text-white text-sm font-medium shadow-sm transition"
+                {% if not available_slots %}
+                  disabled style="opacity:0.6;cursor:not-allowed"
+                {% endif %}>
           Propose New Time
         </button>
 
@@ -93,18 +107,18 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const radios = document.querySelectorAll('input[name="new_time"]');
-    const text = document.getElementById('selected-time-text');
+document.addEventListener('DOMContentLoaded', function () {
+  const radios = document.querySelectorAll('input[name="new_time"]');
+  const text = document.getElementById('selected-time-text');
 
-    radios.forEach(r => {
-      r.addEventListener('change', function () {
-        if (this.checked && text) {
-          text.textContent = "Selected time: " + this.value;
-        }
-      });
+  radios.forEach(radio => {
+    radio.addEventListener('change', function () {
+      if (this.checked && text) {
+        text.textContent = "Selected time: " + this.value;
+      }
     });
   });
+});
 </script>
 
 {% endblock %}
