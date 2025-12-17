@@ -4,7 +4,7 @@ import sqlite3
 import os
 import uuid
 import threading
-
+from datetime import timedelta 
 import re
 from flask import jsonify
 
@@ -2271,6 +2271,109 @@ def owner_appointments():
         cancelled=cancelled,
     )
 
+# FEATURE 11: SUBSCRIPTION & PAYMENT (Rayan)
+
+
+
+@app.route('/pricing')
+def pricing():
+    # Only for owners
+    if "user_id" not in session or session.get("role") != "owner":
+        flash("Please log in as a pet owner to view plans.", "warning")
+        return redirect(url_for("login"))
+    return render_template('pricing.html')
+
+@app.route('/payment/<plan>')
+def payment_page(plan):
+    if "user_id" not in session or session.get("role") != "owner":
+        return redirect(url_for("login"))
+    
+    # Define prices
+    if plan == 'monthly':
+        amount = 200
+    elif plan == 'yearly':
+        amount = 2000
+    else:
+        flash("Invalid plan selected.", "danger")
+        return redirect(url_for('pricing'))
+        
+    return render_template('payment_bkash.html', plan=plan, amount=amount)
+
+@app.route('/process_payment', methods=['POST'])
+def process_payment():
+    if "user_id" not in session or session.get("role") != "owner":
+        return redirect(url_for("login"))
+
+    # 1. Get Form Data
+    plan = request.form.get('plan')
+    amount = request.form.get('amount')
+    bkash_number = request.form.get('bkash_number')
+    
+    # 2. Simulate bKash Validation (Mock)
+    if not bkash_number or len(bkash_number) != 11:
+        flash("Invalid bKash number.", "danger")
+        return redirect(url_for('payment_page', plan=plan))
+    
+    # Generate a fake Transaction ID
+    trx_id = f"Trx_{uuid.uuid4().hex[:8].upper()}"
+    
+    # 3. Update Database
+    owner = get_or_create_owner_for_current_user()
+    conn = get_db()
+    
+    # Calculate Expiry
+    now = datetime.now()
+    if plan == 'monthly':
+        expiry_date = now + timedelta(days=30)
+    else:
+        expiry_date = now + timedelta(days=365)
+        
+    expiry_str = expiry_date.strftime("%Y-%m-%d")
+    payment_date = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    # A. Record Payment
+    conn.execute("""
+        INSERT INTO payments (owner_id, amount, trx_id, payment_method, payment_date, status)
+        VALUES (?, ?, ?, 'bKash', ?, 'completed')
+    """, (owner['id'], amount, trx_id, payment_date))
+    
+    # B. Update Owner Status (Premium + Points)
+    # Give 50 points for monthly, 500 for yearly
+    points_to_add = 50 if plan == 'monthly' else 500
+    
+    conn.execute("""
+        UPDATE owners 
+        SET is_premium = 1, subscription_expiry = ?, reward_points = reward_points + ?
+        WHERE id = ?
+    """, (expiry_str, points_to_add, owner['id']))
+    
+    conn.commit()
+    conn.close()
+    
+    # 4. Send Email Receipt
+    subject = "Payment Receipt - Premium Subscription"
+    body = f"""Hello {owner['name']},
+
+Thank you for subscribing to PetConnect Premium!
+
+PAYMENT DETAILS:
+----------------
+Plan        : {plan.title()} Subscription
+Amount      : {amount} BDT
+Method      : bKash
+Trx ID      : {trx_id}
+Date        : {payment_date}
+Valid Until : {expiry_str}
+
+You now have access to 24/7 PetBot and have earned {points_to_add} reward points!
+
+Regards,
+PetConnect Team
+"""
+    send_email_async(owner['email'], subject, body)
+
+    flash(f"Payment Successful! You are now a Premium Member. Receipt sent to email.", "success")
+    return redirect(url_for('owner_dashboard'))
 
 
 if __name__ == "__main__":

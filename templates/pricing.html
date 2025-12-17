@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto py-10 px-4">
+    <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold text-gray-800">Choose Your Plan</h2>
+        <p class="text-gray-500 mt-2">Unlock exclusive features for your pet.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8">
+        <div class="bg-white rounded-2xl shadow p-8 border border-gray-100">
+            <h3 class="text-xl font-bold text-gray-700">Free User</h3>
+            <p class="text-4xl font-bold text-gray-900 mt-4">৳0<span class="text-sm font-normal text-gray-500">/mo</span></p>
+            <ul class="mt-6 space-y-4 text-sm text-gray-600">
+                <li class="flex items-center">✅ Search Clinics</li>
+                <li class="flex items-center">✅ Book Appointments</li>
+                <li class="flex items-center">✅ Manage Pet Profiles</li>
+                <li class="flex items-center text-gray-400">❌ 24/7 PetBot Access</li>
+                <li class="flex items-center text-gray-400">❌ Loyalty Discounts</li>
+            </ul>
+            <button class="mt-8 w-full py-2 rounded-lg border border-gray-300 text-gray-600 font-medium cursor-not-allowed">
+                Current Plan
+            </button>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xl p-8 border-2 border-pink-500 relative overflow-hidden">
+            <div class="absolute top-0 right-0 bg-pink-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">RECOMMENDED</div>
+            <h3 class="text-xl font-bold text-pink-600">Premium Member</h3>
+            <p class="text-4xl font-bold text-gray-900 mt-4">৳200<span class="text-sm font-normal text-gray-500">/mo</span></p>
+            <p class="text-xs text-gray-500 mb-4">or ৳2,000/year (Save ৳400)</p>
+            
+            <ul class="mt-6 space-y-4 text-sm text-gray-600">
+                <li class="flex items-center">✅ <b>All Free Features</b></li>
+                <li class="flex items-center">✅ <b>24/7 PetBot AI Access</b></li>
+                <li class="flex items-center">✅ <b>Loyalty Rewards Points</b></li>
+                <li class="flex items-center">✅ Priority Support</li>
+            </ul>
+            
+            <div class="mt-8 grid grid-cols-2 gap-3">
+                <a href="{{ url_for('payment_page', plan='monthly') }}" class="block text-center py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white font-bold transition">
+                    Monthly (৳200)
+                </a>
+                <a href="{{ url_for('payment_page', plan='yearly') }}" class="block text-center py-2 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-700 font-bold transition">
+                    Yearly (৳2,000)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

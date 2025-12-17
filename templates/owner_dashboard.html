@@ -20,7 +20,23 @@
 
  
   <div class="flex flex-wrap gap-2 mb-4">
+          <a href="{{ url_for('pricing') }}"
+       class="px-4 py-1.5 rounded-full text-xs md:text-sm bg-gradient-to-r from-pink-500 to-red-500 text-white shadow hover:shadow-lg transition no-underline flex items-center gap-1">
+       👑 Upgrade
+    </a>
 
+    {% if owner and owner['is_premium'] %}
+      <a href="#"
+         class="px-4 py-1.5 rounded-full text-xs md:text-sm bg-purple-600 text-white shadow hover:bg-purple-700 transition no-underline">
+        🤖PetBot AI
+      </a>
+    {% else %}
+      <a href="{{ url_for('pricing') }}"
+         class="px-4 py-1.5 rounded-full text-xs md:text-sm bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+         title="Upgrade to Premium to access">
+        🤖 PetBot (Locked)
+      </a>
+    {% endif %}
     <a href="{{ url_for('owner_search') }}"
        class="px-4 py-1.5 rounded-full text-xs md:text-sm bg-white text-blue-700 border border-blue-100 hover:bg-blue-50 transition no-underline">
       🔍 Search
@@ -79,6 +95,7 @@
         <p class="text-sm text-gray-500">No owner found in the database.</p>
       {% endif %}
     </div>
+    
   </div>
 
 
