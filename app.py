@@ -1146,10 +1146,20 @@ def clinic_doctor_appointments(doctor_id):
             END AS pet_photo,
 
             p.age                AS pet_age,
+            p.age                AS age,
+
             p.animal_type        AS pet_animal_type,
+            p.animal_type        AS animal_type,
+
             p.breed              AS pet_breed,
+            p.breed              AS breed,
+
             p.gender             AS pet_gender,
+            p.gender             AS gender,
+
             p.vaccination_status AS pet_vaccination_status,
+            p.vaccination_status AS vaccination_status,
+
             o.name               AS owner_name,
             d.name               AS doctor_name
         FROM appointments a
