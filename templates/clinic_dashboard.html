@@ -2,35 +2,35 @@
 {% block content %}
 
 <div class="flex flex-col md:flex-row justify-between items-center mb-6">
-    <div class="text-center md:text-left">
-        <h2 class="text-xl font-semibold text-pink-600">Vet Clinic Dashboard</h2>
-        <p class="text-sm text-gray-500">Welcome, {{ clinic['name'] }}</p>
-    </div>
+  <div class="text-center md:text-left">
+    <h2 class="text-xl font-semibold text-pink-600">Vet Clinic Dashboard</h2>
+    <p class="text-sm text-gray-500">Welcome, {{ clinic['name'] }}</p>
+  </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-    <a href="{{ url_for('clinic_dashboard', tab='profile') }}"
-       class="block text-center py-2 rounded-lg font-medium shadow transition
-       {{ 'bg-pink-600 text-white' if tab == 'profile' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
-        🏥 Clinic Profile
-    </a>
+  <a href="{{ url_for('clinic_dashboard', tab='profile') }}"
+     class="block text-center py-2 rounded-lg font-medium shadow transition
+     {{ 'bg-pink-600 text-white' if tab == 'profile' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
+    🏥 Clinic Profile
+  </a>
 
-    <a href="{{ url_for('clinic_dashboard', tab='doctors') }}"
-       class="block text-center py-2 rounded-lg font-medium shadow transition
-       {{ 'bg-pink-600 text-white' if tab == 'doctors' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
-        👨‍⚕️ Manage Doctors
-    </a>
+  <a href="{{ url_for('clinic_dashboard', tab='doctors') }}"
+     class="block text-center py-2 rounded-lg font-medium shadow transition
+     {{ 'bg-pink-600 text-white' if tab == 'doctors' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
+    👨‍⚕️ Manage Doctors
+  </a>
 
-    <a href="{{ url_for('clinic_reports') }}"
-       class="block text-center py-2 rounded-lg font-medium shadow bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200">
-        📊 View Analytics
-    </a>
+  <a href="{{ url_for('clinic_reports') }}"
+     class="block text-center py-2 rounded-lg font-medium shadow bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200">
+    📊 View Analytics
+  </a>
 
-    <a href="{{ url_for('clinic_dashboard', tab='appointments') }}"
-       class="block text-center py-2 rounded-lg font-medium shadow transition
-       {{ 'bg-pink-600 text-white' if tab == 'appointments' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
-        📅 Manage Appointments
-    </a>
+  <a href="{{ url_for('clinic_dashboard', tab='appointments') }}"
+     class="block text-center py-2 rounded-lg font-medium shadow transition
+     {{ 'bg-pink-600 text-white' if tab == 'appointments' else 'bg-white text-gray-700 hover:bg-gray-50' }}">
+    📅 Manage Appointments
+  </a>
 </div>
 
 <div class="bg-white shadow-md rounded-lg p-6 border-l-4 border-pink-500 min-h-[450px]">
@@ -39,101 +39,101 @@
   {% if tab == 'doctors' %}
 
     <div class="flex justify-between items-center mb-6">
-        <h3 class="text-lg font-semibold text-gray-800">Doctor Profiles</h3>
+      <h3 class="text-lg font-semibold text-gray-800">Doctor Profiles</h3>
 
-        <a href="{{ url_for('add_doctor_form') }}"
-           class="bg-pink-600 hover:bg-pink-700 text-white px-5 py-2 rounded-full text-sm font-medium shadow transition flex items-center gap-2">
-            <span class="text-lg">+</span> Add Doctor
-        </a>
+      <a href="{{ url_for('add_doctor_form') }}"
+         class="bg-pink-600 hover:bg-pink-700 text-white px-5 py-2 rounded-full text-sm font-medium shadow transition flex items-center gap-2">
+        <span class="text-lg">+</span> Add Doctor
+      </a>
     </div>
 
     {% if doctors %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {% for doctor in doctors %}
-            <div class="border border-gray-200 rounded-xl p-5 hover:shadow transition bg-gray-50 relative">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {% for doctor in doctors %}
+          <div class="border border-gray-200 rounded-xl p-5 hover:shadow transition bg-gray-50 relative">
 
-                <span class="absolute top-3 right-3 bg-pink-100 text-pink-600 text-xs font-medium px-2 py-1 rounded">
-                    {{ doctor['qualifications'] }}
-                </span>
+            <span class="absolute top-3 right-3 bg-pink-100 text-pink-600 text-xs font-medium px-2 py-1 rounded">
+              {{ doctor['qualifications'] }}
+            </span>
 
-                <h4 class="text-lg font-semibold text-gray-800 mb-1">{{ doctor['name'] }}</h4>
-                <p class="text-xs text-gray-500 mb-4">{{ doctor['email'] }}</p>
+            <h4 class="text-lg font-semibold text-gray-800 mb-1">{{ doctor['name'] }}</h4>
+            <p class="text-xs text-gray-500 mb-4">{{ doctor['email'] }}</p>
 
-                <div class="flex justify-between items-center mb-4 bg-white p-2 rounded-lg border text-sm">
-                    <span class="text-gray-400 uppercase">Fee</span>
-                    <span class="font-semibold text-blue-600">৳{{ doctor['base_fee'] }}</span>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 text-sm">
-                    <a href="{{ url_for('edit_doctor_form', doctor_id=doctor['id']) }}"
-                       class="text-center bg-white border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-50 font-medium">
-                        Edit
-                    </a>
-
-                    <button type="button"
-                            class="w-full bg-red-50 border border-red-100 text-red-600 py-2 rounded hover:bg-red-100 font-medium"
-                            data-delete-url="{{ url_for('delete_doctor_from_dashboard', doctor_id=doctor['id']) }}"
-                            onclick="openDoctorDeleteModal(this);">
-                      Delete
-                    </button>
-                </div>
-
-                <div class="mt-3">
-                    <a href="{{ url_for('clinic_doctor_appointments', doctor_id=doctor['id']) }}"
-                       class="inline-block text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                       View Appointments for this Doctor
-                    </a>
-                </div>
-
+            <div class="flex justify-between items-center mb-4 bg-white p-2 rounded-lg border text-sm">
+              <span class="text-gray-400 uppercase">Fee</span>
+              <span class="font-semibold text-blue-600">৳{{ doctor['base_fee'] }}</span>
             </div>
-            {% endfor %}
-        </div>
+
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <a href="{{ url_for('edit_doctor_form', doctor_id=doctor['id']) }}"
+                 class="text-center bg-white border border-gray-300 text-gray-700 py-2 rounded hover:bg-gray-50 font-medium">
+                Edit
+              </a>
+
+              <button type="button"
+                      class="w-full bg-red-50 border border-red-100 text-red-600 py-2 rounded hover:bg-red-100 font-medium"
+                      data-delete-url="{{ url_for('delete_doctor_from_dashboard', doctor_id=doctor['id']) }}"
+                      onclick="openDoctorDeleteModal(this);">
+                Delete
+              </button>
+            </div>
+
+            <div class="mt-3">
+              <a href="{{ url_for('clinic_doctor_appointments', doctor_id=doctor['id']) }}"
+                 class="inline-block text-xs px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                View Appointments for this Doctor
+              </a>
+            </div>
+
+          </div>
+        {% endfor %}
+      </div>
 
     {% else %}
-        <div class="text-center py-14 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-600">No doctors yet</h3>
-            <p class="text-sm text-gray-400">Add your first doctor to get started.</p>
-        </div>
+      <div class="text-center py-14 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-600">No doctors yet</h3>
+        <p class="text-sm text-gray-400">Add your first doctor to get started.</p>
+      </div>
     {% endif %}
 
   {# -------------------- PROFILE TAB -------------------- #}
   {% elif tab == 'profile' %}
 
     <div class="flex justify-between items-center mb-6">
-        <h3 class="text-lg font-semibold text-gray-800">Clinic Details</h3>
+      <h3 class="text-lg font-semibold text-gray-800">Clinic Details</h3>
 
-        <a href="{{ url_for('edit_clinic_profile') }}"
-           class="bg-gray-800 hover:bg-gray-900 text-white px-5 py-2 rounded-full font-medium text-sm">
-           Edit Profile
-        </a>
+      <a href="{{ url_for('edit_clinic_profile') }}"
+         class="bg-gray-800 hover:bg-gray-900 text-white px-5 py-2 rounded-full font-medium text-sm">
+        Edit Profile
+      </a>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-xl border border-gray-200 text-sm">
 
-        <div>
-            <p class="text-xs text-gray-400 uppercase font-medium mb-1">Clinic Name</p>
-            <p class="text-lg font-semibold text-gray-800">{{ clinic['name'] }}</p>
-        </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase font-medium mb-1">Clinic Name</p>
+        <p class="text-lg font-semibold text-gray-800">{{ clinic['name'] }}</p>
+      </div>
 
-        <div>
-            <p class="text-xs text-gray-400 uppercase font-medium mb-1">License</p>
-            <p class="text-base font-mono text-gray-700">{{ clinic['license_number'] }}</p>
-        </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase font-medium mb-1">License</p>
+        <p class="text-base font-mono text-gray-700">{{ clinic['license_number'] }}</p>
+      </div>
 
-        <div>
-            <p class="text-xs text-gray-400 uppercase font-medium mb-1">Email</p>
-            <p class="text-base text-gray-800">{{ clinic['email'] }}</p>
-        </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase font-medium mb-1">Email</p>
+        <p class="text-base text-gray-800">{{ clinic['email'] }}</p>
+      </div>
 
-        <div>
-            <p class="text-xs text-gray-400 uppercase font-medium mb-1">Contact</p>
-            <p class="text-base text-gray-800">{{ clinic['contact_number'] or 'Not Set' }}</p>
-        </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase font-medium mb-1">Contact</p>
+        <p class="text-base text-gray-800">{{ clinic['contact_number'] or 'Not Set' }}</p>
+      </div>
 
-        <div class="md:col-span-2">
-            <p class="text-xs text-gray-400 uppercase font-medium mb-1">Location</p>
-            <p class="text-base text-gray-800">{{ clinic['location'] or 'Not Set' }}</p>
-        </div>
+      <div class="md:col-span-2">
+        <p class="text-xs text-gray-400 uppercase font-medium mb-1">Location</p>
+        <p class="text-base text-gray-800">{{ clinic['location'] or 'Not Set' }}</p>
+      </div>
 
     </div>
 
@@ -141,10 +141,10 @@
   {% elif tab == 'appointments' %}
 
     <div class="flex justify-between items-center mb-6">
-        <h3 class="text-lg font-semibold text-gray-800">Manage Appointments</h3>
-        <p class="text-xs text-gray-500">
-          Requests for all doctors appear here.
-        </p>
+      <h3 class="text-lg font-semibold text-gray-800">Manage Appointments</h3>
+      <p class="text-xs text-gray-500">
+        Requests for all doctors appear here.
+      </p>
     </div>
 
     <!-- REQUESTS (new + reschedule_pending) -->
@@ -155,49 +155,36 @@
         <div class="space-y-3">
           {% for a in appointments_requests %}
             {% set s = (a['status'] or '')|lower %}
-            <div class="flex items-center gap-3">
 
-              <img
-                src="{{ url_for('static', filename=(a['pet_photo'] or 'images/paw-placeholder.png')) }}"
-                alt="Pet photo"
-                class="w-10 h-10 rounded-full object-cover border border-blue-100"
-              />
+            <!-- ✅ One clean card: photo + name + status in header -->
+            <div class="bg-white border border-yellow-100 rounded-xl px-4 py-3 text-sm">
 
-              <div class="flex-1">
-                <p class="text-sm font-semibold text-gray-900">
-                  {{ a['pet_name'] }}
-                  <span class="text-xs text-gray-500">
-                    ({{ a['owner_name'] }})
-                  </span>
-                </p>
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <img
+                    src="{{ url_for('static', filename=(a['pet_photo'] or 'images/paw-placeholder.png')) }}"
+                    alt="Pet photo"
+                    class="w-10 h-10 rounded-full object-cover border border-blue-100"
+                  />
 
-                <p class="text-xs text-gray-500">
-                  {{ a['pet_animal_type'] or 'Unknown' }} •
-                  {{ a['pet_breed'] or 'Breed N/A' }} •
-                  {{ a['pet_gender'] or 'Gender N/A' }} •
-                  Age: {{ a['pet_age'] or 'N/A' }}
-                </p>
+                  <p class="font-semibold text-gray-900 truncate">
+                    {{ a['pet_name'] }}
+                    <span class="text-gray-500 font-normal">({{ a['owner_name'] }})</span>
+                  </p>
+                </div>
+
+                <span class="text-xs px-3 py-1 rounded-full
+                            {% if s == 'pending' %}
+                              bg-yellow-50 text-yellow-700 border border-yellow-200
+                            {% else %}
+                              bg-orange-50 text-orange-700 border border-orange-200
+                            {% endif %}">
+                  {{ (a['status'] or '')|replace('_', ' ')|title }}
+                </span>
               </div>
 
-              <span class="text-xs px-3 py-1 rounded-full
-                          {% if s == 'pending' %}
-                            bg-yellow-50 text-yellow-700 border border-yellow-200
-                          {% else %}
-                            bg-orange-50 text-orange-700 border border-orange-200
-                          {% endif %}">
-                {{ (a['status'] or '')|replace('_', ' ')|title }}
-              </span>
-
-            </div>
-
-            <div class="bg-white border border-yellow-100 rounded-xl px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-sm">
-              <div>
-                <p class="font-semibold text-gray-900">
-                  {{ a['pet_name'] }}
-                  <span class="text-gray-500">({{ a['owner_name'] }})</span>
-                </p>
-
-                <p class="text-xs text-gray-500 mt-0.5">
+              <div class="mt-2">
+                <p class="text-xs text-gray-500">
                   Doctor:
                   <span class="font-medium">{{ a['doctor_name'] }}</span>
                 </p>
@@ -205,18 +192,10 @@
                 <p class="text-[11px] text-gray-600 mt-0.5">
                   Pet:
                   {{ a['pet_animal_type'] or 'Unknown type' }}
-                  {% if a['pet_breed'] %}
-                    • Breed {{ a['pet_breed'] }}
-                  {% endif %}
-                  {% if a['pet_gender'] %}
-                    • Gender {{ a['pet_gender'] }}
-                  {% endif %}
-                  {% if a['pet_age'] %}
-                    • Age: {{ a['pet_age'] }}
-                  {% endif %}
-                  {% if a['pet_vaccination_status'] %}
-                    • Vaccination: {{ a['pet_vaccination_status'] }}
-                  {% endif %}
+                  {% if a['pet_breed'] %} • Breed {{ a['pet_breed'] }}{% endif %}
+                  {% if a['pet_gender'] %} • Gender {{ a['pet_gender'] }}{% endif %}
+                  {% if a['pet_age'] %} • Age: {{ a['pet_age'] }}{% endif %}
+                  {% if a['pet_vaccination_status'] %} • Vaccination: {{ a['pet_vaccination_status'] }}{% endif %}
                 </p>
 
                 <p class="text-xs text-gray-500 mt-0.5">
@@ -224,14 +203,13 @@
                 </p>
 
                 {% if s == 'reschedule_pending' %}
-                  <p class="text-[11px] text-orange-600 mt-0.5">
+                  <p class="text-[11px] text-orange-600 mt-1">
                     Waiting for owner to confirm the new time.
                   </p>
                 {% endif %}
-
               </div>
 
-              <div class="flex flex-wrap gap-2 text-xs justify-end">
+              <div class="flex flex-wrap gap-2 text-xs justify-end mt-3">
                 {% if s != 'reschedule_pending' %}
                   <!-- Approve with cute modal -->
                   <button type="button"
@@ -260,7 +238,9 @@
                   </a>
                 {% endif %}
               </div>
+
             </div>
+
           {% endfor %}
         </div>
       {% else %}
@@ -295,127 +275,127 @@
 </form>
 
 <div id="doctor-delete-modal" class="modal-overlay" style="display:none;">
-    <div class="modal-card">
-        <div class="modal-title">Delete this doctor?</div>
-        <div class="modal-text">
-            This doctor profile will be permanently removed from your clinic.
-        </div>
-        <div class="modal-buttons">
-            <button id="doctor-modal-confirm" class="modal-btn-danger">Yes, Delete</button>
-            <button id="doctor-modal-cancel" class="modal-btn-cancel" type="button">No, Keep</button>
-        </div>
+  <div class="modal-card">
+    <div class="modal-title">Delete this doctor?</div>
+    <div class="modal-text">
+      This doctor profile will be permanently removed from your clinic.
     </div>
+    <div class="modal-buttons">
+      <button id="doctor-modal-confirm" class="modal-btn-danger">Yes, Delete</button>
+      <button id="doctor-modal-cancel" class="modal-btn-cancel" type="button">No, Keep</button>
+    </div>
+  </div>
 </div>
 
 <style>
-    .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.25);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 999;
-    }
-    .modal-card {
-        background: #fffdfb;
-        border-radius: 18px;
-        padding: 18px 22px;
-        min-width: 260px;
-        max-width: 340px;
-        border: 1px solid #ffd7b0;
-        box-shadow: 0 10px 24px rgba(0,0,0,0.12);
-        text-align: center;
-    }
-    .modal-title {
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: #c2185b;
-    }
-    .modal-text {
-        font-size: 13px;
-        color: #8c4b6e;
-        margin-bottom: 14px;
-    }
-    .modal-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-    }
-    .modal-btn-danger,
-    .modal-btn-cancel {
-        padding: 6px 14px;
-        border-radius: 16px;
-        border: none;
-        font-size: 13px;
-        cursor: pointer;
-    }
-    .modal-btn-danger {
-        background: #e53935;
-        color: #ffffff;
-    }
-    .modal-btn-cancel {
-        background: #e3e3e3;
-        color: #555;
-    }
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.25);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+  }
+  .modal-card {
+    background: #fffdfb;
+    border-radius: 18px;
+    padding: 18px 22px;
+    min-width: 260px;
+    max-width: 340px;
+    border: 1px solid #ffd7b0;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+    text-align: center;
+  }
+  .modal-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #c2185b;
+  }
+  .modal-text {
+    font-size: 13px;
+    color: #8c4b6e;
+    margin-bottom: 14px;
+  }
+  .modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  .modal-btn-danger,
+  .modal-btn-cancel {
+    padding: 6px 14px;
+    border-radius: 16px;
+    border: none;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .modal-btn-danger {
+    background: #e53935;
+    color: #ffffff;
+  }
+  .modal-btn-cancel {
+    background: #e3e3e3;
+    color: #555;
+  }
 </style>
 
 <script>
-    /* Doctor delete modal */
-    let doctorDeleteUrl = null;
+  /* Doctor delete modal */
+  let doctorDeleteUrl = null;
 
-    function openDoctorDeleteModal(button) {
-        doctorDeleteUrl = button.getAttribute('data-delete-url');
-        document.getElementById('doctor-delete-modal').style.display = 'flex';
+  function openDoctorDeleteModal(button) {
+    doctorDeleteUrl = button.getAttribute('data-delete-url');
+    document.getElementById('doctor-delete-modal').style.display = 'flex';
+  }
+
+  document.getElementById('doctor-modal-confirm').onclick = function () {
+    if (doctorDeleteUrl) {
+      const form = document.getElementById('doctor-delete-form');
+      form.action = doctorDeleteUrl;
+      form.submit();
+    }
+  };
+
+  document.getElementById('doctor-modal-cancel').onclick = function () {
+    document.getElementById('doctor-delete-modal').style.display = 'none';
+    doctorDeleteUrl = null;
+  };
+
+  /* Requests Approve/Cancel cute modal */
+  let requestActionUrl = null;
+
+  function openRequestActionModal(button) {
+    requestActionUrl = button.getAttribute('data-action-url');
+    const label = button.getAttribute('data-action-label') || 'Confirm';
+
+    const titleEl = document.getElementById('request-action-title');
+    const textEl  = document.getElementById('request-action-text');
+
+    if (label === 'Approve') {
+      titleEl.textContent = 'Approve this appointment?';
+      textEl.textContent = 'The appointment will be marked as Approved and visible to the owner.';
+    } else {
+      titleEl.textContent = 'Cancel this appointment?';
+      textEl.textContent = 'The appointment will be marked as Cancelled for both clinic and owner.';
     }
 
-    document.getElementById('doctor-modal-confirm').onclick = function () {
-        if (doctorDeleteUrl) {
-            const form = document.getElementById('doctor-delete-form');
-            form.action = doctorDeleteUrl;
-            form.submit();
-        }
-    };
+    document.getElementById('request-action-modal').style.display = 'flex';
+  }
 
-    document.getElementById('doctor-modal-cancel').onclick = function () {
-        document.getElementById('doctor-delete-modal').style.display = 'none';
-        doctorDeleteUrl = null;
-    };
-
-    /* Requests Approve/Cancel cute modal */
-    let requestActionUrl = null;
-
-    function openRequestActionModal(button) {
-        requestActionUrl = button.getAttribute('data-action-url');
-        const label = button.getAttribute('data-action-label') || 'Confirm';
-
-        const titleEl = document.getElementById('request-action-title');
-        const textEl  = document.getElementById('request-action-text');
-
-        if (label === 'Approve') {
-          titleEl.textContent = 'Approve this appointment?';
-          textEl.textContent = 'The appointment will be marked as Approved and visible to the owner.';
-        } else {
-          titleEl.textContent = 'Cancel this appointment?';
-          textEl.textContent = 'The appointment will be marked as Cancelled for both clinic and owner.';
-        }
-
-        document.getElementById('request-action-modal').style.display = 'flex';
+  document.getElementById('request-action-confirm').onclick = function (e) {
+    e.preventDefault();
+    if (requestActionUrl) {
+      const form = document.getElementById('request-action-form');
+      form.action = requestActionUrl;
+      form.submit();
     }
+  };
 
-    document.getElementById('request-action-confirm').onclick = function (e) {
-        e.preventDefault();
-        if (requestActionUrl) {
-            const form = document.getElementById('request-action-form');
-            form.action = requestActionUrl;
-            form.submit();
-        }
-    };
-
-    document.getElementById('request-action-cancel').onclick = function () {
-        document.getElementById('request-action-modal').style.display = 'none';
-        requestActionUrl = null;
-    };
+  document.getElementById('request-action-cancel').onclick = function () {
+    document.getElementById('request-action-modal').style.display = 'none';
+    requestActionUrl = null;
+  };
 </script>
 
 {% endblock %}
