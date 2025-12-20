@@ -6,7 +6,25 @@
         <p class="text-gray-500 mt-2">Unlock exclusive features for your pet.</p>
     </div>
 
+    <!-- Subscription Status Alert -->
+    {% if owner and owner['is_premium'] and owner['subscription_expiry'] %}
+        <div class="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-2xl p-6 text-center shadow-lg">
+            <div class="flex items-center justify-center gap-2 mb-2">
+                <span class="text-3xl">👑</span>
+                <h3 class="text-xl font-bold text-purple-700">You're Already Premium!</h3>
+            </div>
+            <p class="text-purple-600 font-semibold mb-1">
+                Your subscription expires on: <span class="text-purple-800">{{ owner['subscription_expiry'] }}</span>
+            </p>
+            <p class="text-sm text-gray-600">
+                You can renew or extend your subscription below.
+            </p>
+        </div>
+    {% endif %}
+
     <div class="grid md:grid-cols-2 gap-8">
+        
+        <!-- Free Plan -->
         <div class="bg-white rounded-2xl shadow p-8 border border-gray-100">
             <h3 class="text-xl font-bold text-gray-700">Free User</h3>
             <p class="text-4xl font-bold text-gray-900 mt-4">৳0<span class="text-sm font-normal text-gray-500">/mo</span></p>
@@ -17,30 +35,73 @@
                 <li class="flex items-center text-gray-400">❌ 24/7 PetBot Access</li>
                 <li class="flex items-center text-gray-400">❌ Loyalty Discounts</li>
             </ul>
-            <button class="mt-8 w-full py-2 rounded-lg border border-gray-300 text-gray-600 font-medium cursor-not-allowed">
-                Current Plan
-            </button>
+            {% if not owner['is_premium'] %}
+                <button class="mt-8 w-full py-2 rounded-lg border border-gray-300 text-gray-600 font-medium cursor-not-allowed">
+                    Current Plan
+                </button>
+            {% else %}
+                <button class="mt-8 w-full py-2 rounded-lg border border-purple-300 text-purple-600 font-medium cursor-not-allowed">
+                    Premium Active
+                </button>
+            {% endif %}
         </div>
 
+        <!-- Premium Plan -->
         <div class="bg-white rounded-2xl shadow-xl p-8 border-2 border-pink-500 relative overflow-hidden">
-            <div class="absolute top-0 right-0 bg-pink-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">RECOMMENDED</div>
+            <div class="absolute top-0 right-0 bg-pink-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                RECOMMENDED
+            </div>
             <h3 class="text-xl font-bold text-pink-600">Premium Member</h3>
             <p class="text-4xl font-bold text-gray-900 mt-4">৳200<span class="text-sm font-normal text-gray-500">/mo</span></p>
             <p class="text-xs text-gray-500 mb-4">or ৳2,000/year (Save ৳400)</p>
             
-            <ul class="mt-6 space-y-4 text-sm text-gray-600">
+            <ul class="mt-6 space-y-4 text-sm text-gray-600 mb-6">
                 <li class="flex items-center">✅ <b>All Free Features</b></li>
                 <li class="flex items-center">✅ <b>24/7 PetBot AI Access</b></li>
                 <li class="flex items-center">✅ <b>Loyalty Rewards Points</b></li>
                 <li class="flex items-center">✅ Priority Support</li>
             </ul>
             
-            <div class="mt-8 grid grid-cols-2 gap-3">
-                <a href="{{ url_for('payment_page', plan='monthly') }}" class="block text-center py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white font-bold transition">
-                    Monthly (৳200)
+            <!-- DISCOUNT SECTION (Only if points >= 1000 & 10) -->
+            {% if owner and owner['reward_points'] >= 1000 %}
+                <div class="mb-6 bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-center shadow-sm">
+                    <div class="flex justify-center items-center gap-2 mb-2 text-yellow-800 font-bold">
+                        <span class="text-xl">🏆</span>
+                        <span>You have {{ owner['reward_points'] }} points!</span>
+                    </div>
+                    <p class="text-sm text-yellow-700 mb-3">Redeem 1000 points to save ৳50</p>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="{{ url_for('create_checkout_session', plan='monthly', use_points=1) }}" 
+                           class="block w-full py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-white font-bold transition text-sm shadow">
+                            Monthly (৳150)
+                        </a>
+                        <a href="{{ url_for('create_checkout_session', plan='yearly', use_points=1) }}" 
+                           class="block w-full py-2 rounded-lg bg-yellow-600 hover:bg-yellow-700 text-white font-bold transition text-sm shadow">
+                            Yearly (৳1,950)
+                        </a>
+                    </div>
+                </div>
+                <p class="text-center text-gray-400 text-xs mb-2">Or Pay Standard Price:</p>
+            {% endif %}
+
+            <!-- STANDARD PRICE BUTTONS -->
+            <div class="grid grid-cols-2 gap-3">
+                <a href="{{ url_for('create_checkout_session', plan='monthly') }}" 
+                   class="block text-center py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white font-bold transition">
+                    {% if owner and owner['is_premium'] %}
+                        Renew Monthly
+                    {% else %}
+                        Monthly (৳200)
+                    {% endif %}
                 </a>
-                <a href="{{ url_for('payment_page', plan='yearly') }}" class="block text-center py-2 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-700 font-bold transition">
-                    Yearly (৳2,000)
+                <a href="{{ url_for('create_checkout_session', plan='yearly') }}" 
+                   class="block text-center py-2 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-700 font-bold transition">
+                    {% if owner and owner['is_premium'] %}
+                        Renew Yearly
+                    {% else %}
+                        Yearly (৳2,000)
+                    {% endif %}
                 </a>
             </div>
         </div>
