@@ -2455,7 +2455,7 @@ def create_checkout_session(plan):
                 # WARNING: Prevent purchase if more than 7 days remaining
                 if days_left > 7:
                     flash(f"⚠️ You already have {days_left} days of Premium remaining! "
-                           f"You can renew when you have 7 or fewer days left.", "warning")
+                          f"You can renew when you have 7 or fewer days left.", "warning")
                     return redirect(url_for('pricing'))
                 else:
                      #: Less than 7 days left - can renew
