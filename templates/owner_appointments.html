@@ -21,6 +21,13 @@
          class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
         Profile
       </a>
+
+      <!-- ✅ NEW: My Reviews Button -->
+      <a href="{{ url_for('owner_my_reviews') }}"
+         class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+        My Reviews
+      </a>
+
       <span class="px-4 py-1 rounded-full text-gray-400 bg-blue-50 border border-dashed border-blue-200">
         PetBot (coming soon)
       </span>
@@ -36,7 +43,7 @@
     {% if upcoming %}
       <div class="space-y-3">
 
-        {# 1) Reschedule pending cards (with buttons) #}
+        {# RESCHEDULE PENDING #}
         {% for a in upcoming if (a['status'] or '')|lower == 'reschedule_pending' %}
           <div class="bg-white rounded-2xl border border-blue-100 px-5 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
@@ -45,14 +52,13 @@
               </p>
               <p class="text-xs text-gray-500">Pet: {{ a['pet_name'] }}</p>
               <p class="text-xs text-gray-500">{{ a['appointment_date'] }}</p>
-
               <p class="text-xs text-orange-600 mt-1">
                 The clinic has proposed a new time. Please confirm or decline.
               </p>
             </div>
 
             <div class="flex flex-col items-end gap-2">
-              <span class="text-xs px-3 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-right">
+              <span class="text-xs px-3 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200">
                 Reschedule Pending
               </span>
 
@@ -77,7 +83,7 @@
           </div>
         {% endfor %}
 
-        {# 2) All other upcoming cards (no buttons) #}
+        {# OTHER UPCOMING #}
         {% for a in upcoming if (a['status'] or '')|lower != 'reschedule_pending' %}
           <div class="bg-white rounded-2xl border border-blue-100 px-5 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
@@ -92,6 +98,16 @@
               <span class="text-xs px-3 py-1 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200">
                 {{ (a['status'] or '')|replace('_', ' ')|title }}
               </span>
+
+              {# DEMO BUTTON: show only when approved #}
+              {% if (a['status'] or '')|lower == 'approved' %}
+                <form method="post" action="{{ url_for('owner_demo_complete', appt_id=a['id']) }}">
+                  <button type="submit"
+                          class="px-3 py-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium">
+                    Mark Completed (Demo)
+                  </button>
+                </form>
+              {% endif %}
             </div>
           </div>
         {% endfor %}
@@ -107,22 +123,91 @@
   <!-- COMPLETED -->
   <div class="mb-6">
     <h3 class="text-sm font-semibold text-gray-700 mb-2">Completed</h3>
+
     {% if completed %}
       <div class="space-y-3">
+
         {% for a in completed %}
-          <div class="bg-white rounded-2xl border border-green-100 px-5 py-3 flex justify-between items-center">
+          <div class="bg-white rounded-2xl border border-green-100 px-5 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+
             <div>
               <p class="text-sm font-semibold text-gray-900">
                 {{ a['clinic_name'] }} • {{ a['doctor_name'] }}
               </p>
               <p class="text-xs text-gray-500">Pet: {{ a['pet_name'] }}</p>
               <p class="text-xs text-gray-500">{{ a['appointment_date'] }}</p>
+
+              {% if a['reviewed_at'] %}
+                <p class="text-xs text-green-600 mt-1">Reviewed ✅</p>
+              {% else %}
+                <!-- ✅ Dropdown Toggle -->
+                <<button type="button"
+                  onclick="toggleReviewForm({{ a['id'] }})"
+                  class="text-xs text-blue-600 underline mt-1 inline-block">
+                  Leave Review
+                </button>
+
+              {% endif %}
             </div>
-            <span class="text-xs px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
-              {{ (a['status'] or '')|replace('_', ' ')|title }}
-            </span>
+
+            <div class="flex flex-col items-end gap-2">
+              <span class="text-xs px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
+                {{ (a['status'] or '')|replace('_', ' ')|title }}
+              </span>
+            </div>
+
+            <!-- ✅ Hidden Dropdown Review Form -->
+            {% if not a['reviewed_at'] %}
+              <div id="reviewForm-{{ a['id'] }}"
+                   class="hidden mt-3 w-full bg-green-50 border border-green-100 rounded-2xl p-4">
+
+                <form method="POST" action="{{ url_for('owner_submit_review', appt_id=a['id']) }}"
+                      class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                  <!-- Doctor rating REQUIRED -->
+                  <div>
+                    <label class="block text-xs text-gray-600 mb-1">Rate Doctor (1–5) *</label>
+                    <select name="doctor_rating" required
+                            class="w-full border border-green-200 rounded-full px-3 py-2 text-sm">
+                      <option value="">Select rating...</option>
+                      <option value="1">1 ★</option>
+                      <option value="2">2 ★★</option>
+                      <option value="3">3 ★★★</option>
+                      <option value="4">4 ★★★★</option>
+                      <option value="5">5 ★★★★★</option>
+                    </select>
+                  </div>
+
+                  <!-- Doctor review optional -->
+                  <div>
+                    <label class="block text-xs text-gray-600 mb-1">Doctor Review (optional)</label>
+                    <input type="text" name="doctor_review"
+                           placeholder="Write a short review..."
+                           class="w-full border border-green-200 rounded-full px-4 py-2 text-sm">
+                  </div>
+
+                  <!-- Clinic review optional -->
+                  <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-600 mb-1">Clinic Review (optional)</label>
+                    <input type="text" name="clinic_review"
+                           placeholder="Optional clinic feedback..."
+                           class="w-full border border-green-200 rounded-full px-4 py-2 text-sm">
+                  </div>
+
+                  <div class="md:col-span-2 flex justify-end">
+                    <button type="submit"
+                            class="px-5 py-2 rounded-full bg-green-600 hover:bg-green-700 text-white text-sm font-semibold shadow">
+                      Submit Review
+                    </button>
+                  </div>
+
+                </form>
+              </div>
+            {% endif %}
+
           </div>
         {% endfor %}
+
       </div>
     {% else %}
       <div class="text-xs text-gray-500 bg-white rounded-2xl border border-dashed border-green-200 p-4">
@@ -159,5 +244,13 @@
   </div>
 
 </div>
+
+<script>
+function toggleReviewForm(id) {
+  const box = document.getElementById("reviewForm-" + id);
+  if (!box) return;
+  box.classList.toggle("hidden");
+}
+</script>
 
 {% endblock %}

@@ -1772,6 +1772,8 @@ def owner_search():
     """
     Search clinics by name, location, rating.
     Uses clinics + doctors + users.is_verified.
+    Clinic rating = AVG(doctors.rating) (doctor avg ratings)
+    Clinic review count = total number of appointment ratings across doctors in that clinic
     """
     guard = _require_owner()
     if guard:
@@ -1788,15 +1790,24 @@ def owner_search():
     cur.execute("SELECT DISTINCT location FROM clinics ORDER BY location")
     locations = [row["location"] for row in cur.fetchall() if row["location"]]
 
-    # Base query: only clinics whose user is verified
+    # ✅ Updated query:
+    # - clinic_rating = average of doctors.rating (doctor average ratings)
+    # - clinic_review_count = total number of reviews (appointments.rating IS NOT NULL) across that clinic
     sql = """
         SELECT
             c.*,
             u.clinic_location,
-            COALESCE(AVG(d.rating), 0) AS clinic_rating,
-            COUNT(d.id)                AS doctor_count
+            COALESCE(AVG(COALESCE(d.rating, 0)), 0) AS clinic_rating,
+            (
+                SELECT COUNT(a.rating)
+                FROM appointments a
+                JOIN doctors d2 ON a.doctor_id = d2.id
+                WHERE d2.clinic_id = c.id
+                  AND a.rating IS NOT NULL
+            ) AS clinic_review_count,
+            COUNT(d.id) AS doctor_count
         FROM clinics c
-        JOIN users u   ON c.user_id = u.id
+        JOIN users u ON c.user_id = u.id
         LEFT JOIN doctors d ON d.clinic_id = c.id
         WHERE u.is_verified = 1
     """
@@ -1971,6 +1982,8 @@ def _doctor_slots_for_date(conn, doctor_id: int, date_str: str):
 def owner_clinic_detail(clinic_id):
     """
     Show single clinic details + doctors + booking form.
+    Clinic rating = AVG(doctors.rating)
+    Clinic review count = total number of appointment ratings across all doctors in this clinic
     """
     guard = _require_owner()
     if guard:
@@ -1979,12 +1992,19 @@ def owner_clinic_detail(clinic_id):
     conn = _get_conn()
     cur = conn.cursor()
 
-    # Clinic info + average rating
+    # ✅ Updated clinic info: rating + review count
     cur.execute(
         """
         SELECT
             c.*,
-            COALESCE(AVG(d.rating), 0) AS clinic_rating
+            COALESCE(AVG(COALESCE(d.rating, 0)), 0) AS clinic_rating,
+            (
+                SELECT COUNT(a.rating)
+                FROM appointments a
+                JOIN doctors d2 ON a.doctor_id = d2.id
+                WHERE d2.clinic_id = c.id
+                  AND a.rating IS NOT NULL
+            ) AS clinic_review_count
         FROM clinics c
         LEFT JOIN doctors d ON d.clinic_id = c.id
         WHERE c.id = ?
@@ -2010,7 +2030,7 @@ def owner_clinic_detail(clinic_id):
     )
     doctors = cur.fetchall()
 
-    # Owner + pets 
+    # Owner + pets
     owner = _get_owner_for_current_user(conn)
     if not owner:
         conn.close()
@@ -2040,6 +2060,7 @@ def owner_clinic_detail(clinic_id):
         doctor_slots={},
         today=today
     )
+
 
 
 
@@ -2423,6 +2444,208 @@ def owner_appointments():
         cancelled=cancelled,
     )
 
+
+
+# ---------------- DEMO HELPERS (temporary) ----------------
+DEMO_MODE = True  # set to False before final submission if you want
+
+@app.route("/owner/appointment/<int:appt_id>/demo_complete", methods=["POST"])
+def owner_demo_complete(appt_id):
+    # Only allow in demo mode
+    if not DEMO_MODE:
+        flash("Demo actions are disabled.", "warning")
+        return redirect(url_for("owner_appointments"))
+
+    # Must be logged in as owner
+    if "user_id" not in session or session.get("role") != "owner":
+        flash("Please log in as an owner.", "warning")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # Ensure appointment belongs to this owner AND is approved
+    row = cur.execute("""
+        SELECT a.id, a.status
+        FROM appointments a
+        JOIN pets p ON a.pet_id = p.id
+        JOIN owners o ON p.owner_id = o.id
+        WHERE a.id = ? AND o.user_id = ?
+    """, (appt_id, session["user_id"])).fetchone()
+
+    if not row:
+        conn.close()
+        flash("Appointment not found.", "danger")
+        return redirect(url_for("owner_appointments"))
+
+    status = (row["status"] or "").lower()
+    if status != "approved":
+        conn.close()
+        flash("Only APPROVED appointments can be marked completed (demo).", "warning")
+        return redirect(url_for("owner_appointments"))
+
+    cur.execute("UPDATE appointments SET status = 'completed' WHERE id = ?", (appt_id,))
+    conn.commit()
+    conn.close()
+
+    flash("✅ Marked as completed (demo).", "success")
+    return redirect(url_for("owner_appointments"))
+
+# Rewiew and Rating (Sriti)
+
+def update_doctor_rating_and_clinic_rating(conn, doctor_id):
+    cur = conn.cursor()
+
+    # ✅ Doctor avg rating (only completed appointments with rating)
+    avg_doctor = cur.execute("""
+        SELECT AVG(rating)
+        FROM appointments
+        WHERE doctor_id = ? AND rating IS NOT NULL
+    """, (doctor_id,)).fetchone()[0]
+
+    avg_doctor = round(avg_doctor, 1) if avg_doctor else 0.0
+
+    cur.execute("""
+        UPDATE doctors SET rating = ?
+        WHERE id = ?
+    """, (avg_doctor, doctor_id))
+
+    # ✅ Update clinic rating based on all doctor ratings
+    clinic_id = cur.execute("SELECT clinic_id FROM doctors WHERE id = ?", (doctor_id,)).fetchone()[0]
+
+    avg_clinic = cur.execute("""
+        SELECT AVG(rating)
+        FROM doctors
+        WHERE clinic_id = ?
+    """, (clinic_id,)).fetchone()[0]
+
+    avg_clinic = round(avg_clinic, 1) if avg_clinic else 0.0
+
+    cur.execute("""
+        UPDATE clinics SET location = location
+        WHERE id = ?
+    """, (clinic_id,))
+@app.route("/owner/review/<int:appt_id>", methods=["POST"])
+def owner_submit_review(appt_id):
+    guard = _require_owner()
+    if guard:
+        return guard
+
+    doctor_rating = request.form.get("doctor_rating")
+    doctor_review = (request.form.get("doctor_review") or "").strip()
+    clinic_review = (request.form.get("clinic_review") or "").strip()
+
+    if not doctor_rating:
+        flash("Doctor rating is required.", "danger")
+        return redirect(url_for("owner_appointments"))
+
+    try:
+        doctor_rating = int(doctor_rating)
+        if doctor_rating < 1 or doctor_rating > 5:
+            raise ValueError
+    except:
+        flash("Rating must be between 1 and 5.", "danger")
+        return redirect(url_for("owner_appointments"))
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # ✅ Ensure appointment belongs to this owner + is completed
+    cur.execute("""
+        SELECT a.*, p.owner_id, o.user_id
+        FROM appointments a
+        JOIN pets p ON a.pet_id = p.id
+        JOIN owners o ON p.owner_id = o.id
+        WHERE a.id = ?
+    """, (appt_id,))
+    appt = cur.fetchone()
+
+    if not appt:
+        conn.close()
+        flash("Appointment not found.", "danger")
+        return redirect(url_for("owner_appointments"))
+
+    if appt["user_id"] != session.get("user_id"):
+        conn.close()
+        flash("You cannot review this appointment.", "danger")
+        return redirect(url_for("owner_appointments"))
+
+    if (appt["status"] or "").lower() != "completed":
+        conn.close()
+        flash("You can only review completed appointments.", "warning")
+        return redirect(url_for("owner_appointments"))
+
+    if appt["reviewed_at"]:
+        conn.close()
+        flash("You already reviewed this appointment.", "info")
+        return redirect(url_for("owner_appointments"))
+
+    reviewed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # ✅ Save review to appointment
+    cur.execute("""
+        UPDATE appointments
+        SET rating = ?, doctor_review = ?, clinic_review = ?, reviewed_at = ?
+        WHERE id = ?
+    """, (doctor_rating, doctor_review, clinic_review, reviewed_at, appt_id))
+
+    conn.commit()
+
+    # ✅ Update doctor rating avg
+    update_doctor_rating_and_clinic_rating(conn, appt["doctor_id"])
+
+    conn.commit()
+    conn.close()
+
+    flash("✅ Review submitted successfully!", "success")
+    return redirect(url_for("owner_appointments"))
+
+
+
+@app.route("/owner/my-reviews")
+def owner_my_reviews():
+    guard = _require_owner()
+    if guard:
+        return guard
+
+    conn = _get_conn()
+    cur = conn.cursor()
+
+    owner = _get_owner_for_current_user(conn)
+    if not owner:
+        conn.close()
+        flash("Owner profile not found.", "danger")
+        return redirect(url_for("owner_dashboard"))
+
+    reviews = cur.execute("""
+        SELECT
+            a.id,
+            a.appointment_date,
+            a.rating,
+            a.reviewed_at,
+            a.doctor_review,
+            a.clinic_review,
+            p.name AS pet_name,
+            d.name AS doctor_name,
+            c.name AS clinic_name
+        FROM appointments a
+        JOIN pets p ON a.pet_id = p.id
+        JOIN doctors d ON a.doctor_id = d.id
+        JOIN clinics c ON d.clinic_id = c.id
+        WHERE p.owner_id = ?
+          AND a.reviewed_at IS NOT NULL
+        ORDER BY a.reviewed_at DESC
+    """, (owner["id"],)).fetchall()
+
+    conn.close()
+
+    return render_template("owner_my_reviews.html", reviews=reviews)
+
+
+
+
+
 # FEATURE 11: SUBSCRIPTION & PAYMENT (Rayan)
 
 @app.route('/pricing')
@@ -2633,4 +2856,3 @@ def payment_cancel():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
