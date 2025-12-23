@@ -4,17 +4,22 @@ import sqlite3
 import os
 import uuid
 import threading
-from datetime import timedelta 
 import re
 from flask import jsonify
-
-from datetime import datetime
+import stripe
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
+#STRIPE CONFIGURATION 
+app.config['STRIPE_PUBLIC_KEY'] = 'pk_test_51Sg9a30Cz9n3DbBIPyR4tja6Ioj33f2UAZoasvpTRdmg3WO9dZlC3Jgn0uf89jfI3ThKGTI6ZSdGJiNmFKuaxR8N00pBaQWjFF'
+app.config['STRIPE_SECRET_KEY'] = 'sk_test_51Sg9a30Cz9n3DbBIvWBYcHJw6pAeSQWPCAhpCk45OHpIyc8KJyGT4w32jWnebVbJit7O1Z044rp1TCTMtPIrIUH900UtwxfYcR'
+stripe.api_key = app.config['STRIPE_SECRET_KEY']
+#======================================================
 app.config["SECRET_KEY"] = "change-this-secret-key"
 app.config["DATABASE"] = os.path.join("instance", "petcare.db")
 app.config["UPLOAD_FOLDER"] = os.path.join("static", "pet_photos")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+
 
 
 def allowed_file(filename):
@@ -2062,10 +2067,162 @@ def owner_doctor_slots(doctor_id):
 
 # Booking 
 
+# @app.route("/owner/book/<int:clinic_id>/<int:doctor_id>", methods=["POST"])
+# def book_appointment(clinic_id, doctor_id):
+#     """Book an appointment for a pet with a doctor."""
+#     # Must be logged in as owner
+#     if "user_id" not in session or session.get("role") != "owner":
+#         flash("Please log in as a pet owner to book an appointment.", "warning")
+#         return redirect(url_for("login"))
+
+#     owner = get_or_create_owner_for_current_user()
+#     if not owner:
+#         flash("Owner profile not found.", "danger")
+#         return redirect(url_for("login"))
+
+#     # Form values
+#     pet_id = request.form.get("pet_id")
+#     date = request.form.get("date")
+#     time_str = request.form.get("time")
+
+#     if not pet_id or not date or not time_str:
+#         flash("Please select pet, date, and time.", "warning")
+#         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
+
+#     from datetime import datetime
+
+#     # Parse to datetime so we can check weekday etc.
+#     try:
+#         dt = _dt2.strptime(f"{date} {time_str}", "%Y-%m-%d %H:%M")
+
+#         if dt < datetime.now().replace(second=0, microsecond=0):
+#             flash("You cannot book an appointment in the past.", "danger")
+#             return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
+
+#     except ValueError:
+#         flash("Please pick a valid date and time.", "warning")
+#         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
+
+#     appointment_dt = dt.strftime("%Y-%m-%d %H:%M")
+#     weekday_short = dt.strftime("%a").lower()  # 'mon', 'tue', ...
+
+
+#     conn = get_db()
+#     cur = conn.cursor()
+
+#     # 1) Check doctor's weekly availability (day of week)
+#     cur.execute("SELECT weekly_schedule FROM doctors WHERE id = ?", (doctor_id,))
+#     doctor_row = cur.fetchone()
+#     if not doctor_row:
+#         conn.close()
+#         flash("Doctor not found.", "danger")
+#         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
+
+#     weekly_schedule = (doctor_row["weekly_schedule"] or "").lower()
+
+#     day_code = {
+#         "mon": "mon",
+#         "tue": "tue",
+#         "wed": "wed",
+#         "thu": "thu",
+#         "fri": "fri",
+#         "sat": "sat",
+#         "sun": "sun",
+#     }[weekday_short]
+
+#     if day_code not in weekly_schedule:
+#         conn.close()
+#         flash("This doctor is not available on that day. Please choose another date.", "warning")
+#         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
+
+#     #  2) Verify pet belongs to this owner 
+#     cur.execute(
+#         "SELECT 1 FROM pets WHERE id = ? AND owner_id = ?",
+#         (pet_id, owner["id"])
+#     )
+#     if not cur.fetchone():
+#         conn.close()
+#         flash("Invalid pet selected.", "danger")
+#         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
+
+#     # 3) Prevent double booking of same slot
+#     cur.execute(
+#         """
+#         SELECT id
+#         FROM appointments
+#         WHERE doctor_id = ?
+#           AND appointment_date = ?
+#           AND status IN ('pending', 'completed', 'approved')
+#         """,
+#         (doctor_id, appointment_dt),
+#     )
+#     if cur.fetchone():
+#         conn.close()
+#         flash("Slot is filled, choose another timing.", "danger")
+#         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
+
+#     # 4) Insert appointment 
+#     cur.execute(
+#         """
+#         INSERT INTO appointments (pet_id, doctor_id, appointment_date, status)
+#         VALUES (?, ?, ?, 'pending')
+#         """,
+#         (pet_id, doctor_id, appointment_dt),
+#     )
+#     appt_id = cur.lastrowid
+#     # FEATURE 12: EARN POINTS (Add this block by Rayan) ---
+
+#     if owner.get('is_premium'):
+#         POINTS_PER_BOOKING = 10  
+#         cur.execute("UPDATE owners SET reward_points = reward_points + ? WHERE id = ?", 
+#                    (POINTS_PER_BOOKING, owner['id']))
+#         flash(f"You earned {POINTS_PER_BOOKING} reward points!", "info")
+#     # ------------------------------------------------
+#     conn.commit()
+#     conn.close()
+#     # 5) Send emails 
+#     appt = get_appointment_context(appt_id)
+#     if appt:
+#         pretty_status = _pretty_status(appt["status"] or "pending")
+#         pretty_dt = _pretty_datetime(appt["appointment_date"])
+
+#         owner_subject = f"Appointment Update: {pretty_status}"
+#         owner_body = (
+#             f"Hello {appt['owner_name'] or 'there'},\n\n"
+#             f"Your appointment request has been placed successfully.\n\n"
+#             f"Clinic: {appt['clinic_name']}\n"
+#             f"Doctor: {appt['doctor_name']}\n"
+#             f"Pet: {appt['pet_name']}\n"
+#             f"Time: {pretty_dt}\n"
+#             f"Status: {pretty_status}\n\n"
+#             f"You will receive another update when the clinic approves, cancels, or reschedules this appointment.\n\n"
+#             f"{EMAIL_SIGNATURE}\n"
+#         )
+#         send_email_async(appt["owner_email"], owner_subject, owner_body)
+
+#         clinic_subject = f"New Appointment Request: {pretty_status}"
+#         clinic_body = (
+#             f"Hello {appt['clinic_name'] or 'there'},\n\n"
+#             f"A new appointment request has been made.\n\n"
+#             f"Owner: {appt['owner_name']}\n"
+#             f"Pet: {appt['pet_name']}\n"
+#             f"Doctor: {appt['doctor_name']}\n"
+#             f"Time: {pretty_dt}\n"
+#             f"Status: {pretty_status}\n\n"
+#             f"Please review this request from your clinic dashboard.\n\n"
+#             f"{EMAIL_SIGNATURE}\n"
+#         )
+#         send_email_async(appt["clinic_email"], clinic_subject, clinic_body)
+
+
+#     flash("Appointment booked! Waiting for clinic confirmation.", "success")
+#     return redirect(url_for("owner_appointments"))
+#=========================================================
+#ADD THIS BLOCK BY RAYAN
+#=========================================================
 @app.route("/owner/book/<int:clinic_id>/<int:doctor_id>", methods=["POST"])
 def book_appointment(clinic_id, doctor_id):
     """Book an appointment for a pet with a doctor."""
-    # Must be logged in as owner
     if "user_id" not in session or session.get("role") != "owner":
         flash("Please log in as a pet owner to book an appointment.", "warning")
         return redirect(url_for("login"))
@@ -2075,7 +2232,6 @@ def book_appointment(clinic_id, doctor_id):
         flash("Owner profile not found.", "danger")
         return redirect(url_for("login"))
 
-    # Form values
     pet_id = request.form.get("pet_id")
     date = request.form.get("date")
     time_str = request.form.get("time")
@@ -2084,28 +2240,22 @@ def book_appointment(clinic_id, doctor_id):
         flash("Please select pet, date, and time.", "warning")
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
-    from datetime import datetime
-
-    # Parse to datetime so we can check weekday etc.
     try:
         dt = _dt2.strptime(f"{date} {time_str}", "%Y-%m-%d %H:%M")
-
         if dt < datetime.now().replace(second=0, microsecond=0):
             flash("You cannot book an appointment in the past.", "danger")
             return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
-
     except ValueError:
         flash("Please pick a valid date and time.", "warning")
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
     appointment_dt = dt.strftime("%Y-%m-%d %H:%M")
-    weekday_short = dt.strftime("%a").lower()  # 'mon', 'tue', ...
-
+    weekday_short = dt.strftime("%a").lower()
 
     conn = get_db()
     cur = conn.cursor()
 
-    # 1) Check doctor's weekly availability (day of week)
+    # Check doctor's weekly availability
     cur.execute("SELECT weekly_schedule FROM doctors WHERE id = ?", (doctor_id,))
     doctor_row = cur.fetchone()
     if not doctor_row:
@@ -2114,60 +2264,55 @@ def book_appointment(clinic_id, doctor_id):
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
     weekly_schedule = (doctor_row["weekly_schedule"] or "").lower()
-
-    day_code = {
-        "mon": "mon",
-        "tue": "tue",
-        "wed": "wed",
-        "thu": "thu",
-        "fri": "fri",
-        "sat": "sat",
-        "sun": "sun",
-    }[weekday_short]
+    day_code = {"mon": "mon", "tue": "tue", "wed": "wed", "thu": "thu", 
+                "fri": "fri", "sat": "sat", "sun": "sun"}[weekday_short]
 
     if day_code not in weekly_schedule:
         conn.close()
         flash("This doctor is not available on that day. Please choose another date.", "warning")
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
-    #  2) Verify pet belongs to this owner 
-    cur.execute(
-        "SELECT 1 FROM pets WHERE id = ? AND owner_id = ?",
-        (pet_id, owner["id"])
-    )
+    # Verify pet belongs to owner
+    cur.execute("SELECT 1 FROM pets WHERE id = ? AND owner_id = ?", (pet_id, owner["id"]))
     if not cur.fetchone():
         conn.close()
         flash("Invalid pet selected.", "danger")
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
-    # 3) Prevent double booking of same slot
-    cur.execute(
-        """
-        SELECT id
-        FROM appointments
-        WHERE doctor_id = ?
-          AND appointment_date = ?
+    # Prevent double booking
+    cur.execute("""
+        SELECT id FROM appointments
+        WHERE doctor_id = ? AND appointment_date = ?
           AND status IN ('pending', 'completed', 'approved')
-        """,
-        (doctor_id, appointment_dt),
-    )
+    """, (doctor_id, appointment_dt))
     if cur.fetchone():
         conn.close()
         flash("Slot is filled, choose another timing.", "danger")
         return redirect(url_for("owner_clinic_detail", clinic_id=clinic_id))
 
-    # 4) Insert appointment 
-    cur.execute(
-        """
+    # Insert appointment
+    cur.execute("""
         INSERT INTO appointments (pet_id, doctor_id, appointment_date, status)
         VALUES (?, ?, ?, 'pending')
-        """,
-        (pet_id, doctor_id, appointment_dt),
-    )
+    """, (pet_id, doctor_id, appointment_dt))
     appt_id = cur.lastrowid
+    #Feature 12 (Rayan)
+    # Award points ONLY if premium (check is_premium = 1)
+    if owner['is_premium'] == 1:
+        POINTS_PER_BOOKING = 10
+        cur.execute("""
+            UPDATE owners 
+            SET reward_points = COALESCE(reward_points, 0) + ? 
+            WHERE id = ?
+        """, (POINTS_PER_BOOKING, owner['id']))
+        flash(f"Appointment booked! You earned {POINTS_PER_BOOKING} reward points! 🏆", "success")
+    else:
+        flash("Appointment booked! Waiting for clinic confirmation.", "success")
+
     conn.commit()
     conn.close()
-    # 5) Send emails 
+
+    # Send emails
     appt = get_appointment_context(appt_id)
     if appt:
         pretty_status = _pretty_status(appt["status"] or "pending")
@@ -2201,10 +2346,7 @@ def book_appointment(clinic_id, doctor_id):
         )
         send_email_async(appt["clinic_email"], clinic_subject, clinic_body)
 
-
-    flash("Appointment booked! Waiting for clinic confirmation.", "success")
     return redirect(url_for("owner_appointments"))
-
 
 
 @app.route("/owner/appointments")
@@ -2280,111 +2422,321 @@ def owner_appointments():
         completed=completed,
         cancelled=cancelled,
     )
+# Rewiew and Rating (Sriti)
+
+@app.route("/owner/appointment/<int:appt_id>/review", methods=["GET", "POST"])
+def owner_leave_review(appt_id):
+    # Must be logged in as owner
+    if "user_id" not in session or session.get("role") != "owner":
+        flash("Please log in as a pet owner.", "warning")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Get owner row for current user
+    owner = _get_owner_for_current_user(conn)
+    if not owner:
+        conn.close()
+        flash("Owner profile not found.", "danger")
+        return redirect(url_for("owner_dashboard"))
+
+    # Appointment must belong to this owner
+    appt = cur.execute("""
+        SELECT
+            a.*,
+            d.name AS doctor_name,
+            c.name AS clinic_name,
+            p.name AS pet_name
+        FROM appointments a
+        JOIN pets p    ON a.pet_id = p.id
+        JOIN owners o  ON p.owner_id = o.id
+        JOIN doctors d ON a.doctor_id = d.id
+        JOIN clinics c ON d.clinic_id = c.id
+        WHERE a.id = ? AND o.id = ?
+    """, (appt_id, owner["id"])).fetchone()
+
+    if not appt:
+        conn.close()
+        flash("Appointment not found.", "warning")
+        return redirect(url_for("owner_appointments"))
+
+    # Only completed appointments can be reviewed
+    status = (appt["status"] or "").lower()
+    if status != "completed":
+        conn.close()
+        flash("You can only review a completed appointment.", "warning")
+        return redirect(url_for("owner_appointments"))
+
+    # One review per appointment
+    already_reviewed = appt["reviewed_at"] is not None
+    if already_reviewed:
+        conn.close()
+        flash("You already reviewed this appointment.", "info")
+        return redirect(url_for("owner_appointments"))
+
+    if request.method == "POST":
+        doctor_rating = (request.form.get("doctor_rating") or "").strip()
+        doctor_review = (request.form.get("doctor_review") or "").strip()
+        clinic_rating = (request.form.get("clinic_rating") or "").strip()
+        clinic_review = (request.form.get("clinic_review") or "").strip()
+
+        # Validate ratings (1-5)
+        try:
+            doctor_rating = int(doctor_rating)
+            clinic_rating = int(clinic_rating)
+            if doctor_rating < 1 or doctor_rating > 5:
+                raise ValueError()
+            if clinic_rating < 1 or clinic_rating > 5:
+                raise ValueError()
+        except Exception:
+            conn.close()
+            flash("Ratings must be between 1 and 5.", "danger")
+            return redirect(url_for("owner_leave_review", appt_id=appt_id))
+
+        reviewed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Save review to appointments
+        cur.execute("""
+            UPDATE appointments
+            SET rating = ?,
+                review_text = ?,
+                clinic_rating = ?,
+                clinic_review_text = ?,
+                reviewed_at = ?
+            WHERE id = ?
+        """, (doctor_rating, doctor_review, clinic_rating, clinic_review, reviewed_at, appt_id))
+        conn.commit()
+
+        # Update doctor average rating (rounded 1 decimal) + keep count available later
+        doctor_id = appt["doctor_id"]
+        row = cur.execute("""
+            SELECT AVG(rating) AS avg_rating, COUNT(rating) AS cnt
+            FROM appointments
+            WHERE doctor_id = ? AND rating IS NOT NULL
+        """, (doctor_id,)).fetchone()
+
+        avg_rating = float(row["avg_rating"]) if row and row["avg_rating"] is not None else 0.0
+        avg_rating = round(avg_rating, 1)
+
+        cur.execute("UPDATE doctors SET rating = ? WHERE id = ?", (avg_rating, doctor_id))
+        conn.commit()
+
+        conn.close()
+        flash("Review submitted successfully!", "success")
+        return redirect(url_for("owner_appointments"))
+
+    # GET -> show review form
+    conn.close()
+    return render_template("review_form.html", appt=appt)
 
 # FEATURE 11: SUBSCRIPTION & PAYMENT (Rayan)
 
-
-
 @app.route('/pricing')
 def pricing():
-    # Only for owners
     if "user_id" not in session or session.get("role") != "owner":
         flash("Please log in as a pet owner to view plans.", "warning")
         return redirect(url_for("login"))
-    return render_template('pricing.html')
+    owner = get_or_create_owner_for_current_user()
+    return render_template('pricing.html', owner=owner)
 
-@app.route('/payment/<plan>')
-def payment_page(plan):
+
+@app.route('/create-checkout-session/<plan>')
+def create_checkout_session(plan):
     if "user_id" not in session or session.get("role") != "owner":
         return redirect(url_for("login"))
     
-    # Define prices
+    owner = get_or_create_owner_for_current_user()
+    
+    #Check if already premium with valid subscription
+    if owner['is_premium'] == 1 and owner['subscription_expiry']:
+        try:
+            from datetime import datetime
+            expiry = datetime.strptime(owner['subscription_expiry'], "%Y-%m-%d")
+            now = datetime.now()
+            
+            # If subscription is still valid (not expired)
+            if expiry > now:
+                days_left = (expiry - now).days
+                # RESTRICTION DISABLED
+                # WARNING: Prevent purchase if more than 7 days remaining
+                if days_left > 7:
+                    flash(f"⚠️ You already have {days_left} days of Premium remaining! "
+                           f"You can renew when you have 7 or fewer days left.", "warning")
+                    return redirect(url_for('pricing'))
+                else:
+                     #: Less than 7 days left - can renew
+                     flash(f"🔄 Renewing your subscription (expires in {days_left} days)", "info")
+        except Exception as e:
+            print(f"Date parsing error: {e}")
+    
+    # Setup base price
     if plan == 'monthly':
-        amount = 200
+        amount_bdt = 200
+        plan_name = 'Monthly Subscription'
     elif plan == 'yearly':
-        amount = 2000
+        amount_bdt = 2000
+        plan_name = 'Yearly Subscription'
     else:
-        flash("Invalid plan selected.", "danger")
         return redirect(url_for('pricing'))
-        
-    return render_template('payment_bkash.html', plan=plan, amount=amount)
 
-@app.route('/process_payment', methods=['POST'])
-def process_payment():
+    # Get discount preference
+    use_points = request.args.get('use_points') == '1'
+    
+    # Safe point conversion
+    try:
+        current_points = int(owner['reward_points'] if owner['reward_points'] is not None else 0)
+    except (ValueError, TypeError):
+        current_points = 0
+
+    points_redeemed = 0
+    discount_amount = 0
+    product_name = f"PetConnect {plan_name}"
+
+    # Discount logic - validate BEFORE Stripe
+    if use_points:
+        if current_points >= 1000:     #1000
+            discount_amount = 50
+            points_redeemed = 1000      #1000
+            amount_bdt -= discount_amount
+            product_name = f"PetConnect {plan_name} (৳50 Discount Applied)"
+        else:
+            flash(f"❌ Not enough points! You need 1000 points, but you have {current_points}.", "warning")
+            return redirect(url_for('pricing'))
+    
+    stripe_amount = int(amount_bdt * 100)  # Convert to poisha
+
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'bdt',
+                    'product_data': {'name': product_name},
+                    'unit_amount': stripe_amount,
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=url_for('payment_success', 
+                                plan=plan_name, 
+                                points_redeemed=points_redeemed, 
+                                discount_amount=discount_amount, 
+                                _external=True) + '&session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('payment_cancel', _external=True),
+        )
+        return redirect(checkout_session.url, code=303)
+    except Exception as e:
+        flash(f"Payment Error: {e}", "danger")
+        return redirect(url_for('pricing'))
+
+
+# Payment success now EXTENDS subscription if already premium
+@app.route('/payment/success')
+def payment_success():
     if "user_id" not in session or session.get("role") != "owner":
         return redirect(url_for("login"))
 
-    # 1. Get Form Data
-    plan = request.form.get('plan')
-    amount = request.form.get('amount')
-    bkash_number = request.form.get('bkash_number')
+    # Get data from URL
+    plan_name = request.args.get('plan')
+    session_id = request.args.get('session_id')
+    points_redeemed = int(request.args.get('points_redeemed', 0))
+    discount_amount = int(request.args.get('discount_amount', 0))
     
-    # 2. Simulate bKash Validation (Mock)
-    if not bkash_number or len(bkash_number) != 11:
-        flash("Invalid bKash number.", "danger")
-        return redirect(url_for('payment_page', plan=plan))
-    
-    # Generate a fake Transaction ID
-    trx_id = f"Trx_{uuid.uuid4().hex[:8].upper()}"
-    
-    # 3. Update Database
     owner = get_or_create_owner_for_current_user()
     conn = get_db()
     
-    # Calculate Expiry
+    #Smart expiry calculation - EXTEND if already premium
     now = datetime.now()
-    if plan == 'monthly':
-        expiry_date = now + timedelta(days=30)
+    
+    # Check if user already has a valid subscription
+    if owner['is_premium'] == 1 and owner['subscription_expiry']:
+        try:
+            current_expiry = datetime.strptime(owner['subscription_expiry'], "%Y-%m-%d")
+            
+            # If subscription is still valid, extend from expiry date
+            if current_expiry > now:
+                start_date = current_expiry
+                is_renewal = True
+            else:
+                # Expired subscription, start from today
+                start_date = now
+                is_renewal = False
+        except Exception:
+            start_date = now
+            is_renewal = False
     else:
-        expiry_date = now + timedelta(days=365)
+        # First time premium
+        start_date = now
+        is_renewal = False
+    
+    # Calculate new expiry based on plan
+    if plan_name and 'Monthly' in plan_name:
+        expiry_date = start_date + timedelta(days=30)
+        points_earned = 50
+    else:
+        expiry_date = start_date + timedelta(days=365)
+        points_earned = 500
         
     expiry_str = expiry_date.strftime("%Y-%m-%d")
     payment_date = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    # A. Record Payment
+    # Calculate actual amount paid
+    if plan_name and 'Monthly' in plan_name:
+        base_amount = 200
+    else:
+        base_amount = 2000
+    
+    final_amount = base_amount - discount_amount
+
+    # Record payment
     conn.execute("""
         INSERT INTO payments (owner_id, amount, trx_id, payment_method, payment_date, status)
-        VALUES (?, ?, ?, 'bKash', ?, 'completed')
-    """, (owner['id'], amount, trx_id, payment_date))
+        VALUES (?, ?, ?, 'Stripe', ?, 'completed')
+    """, (owner['id'], final_amount, session_id, payment_date))
     
-    # B. Update Owner Status (Premium + Points)
-    # Give 50 points for monthly, 500 for yearly
-    points_to_add = 50 if plan == 'monthly' else 500
-    
+    # Update owner - deduct redeemed points, add earned points
     conn.execute("""
         UPDATE owners 
-        SET is_premium = 1, subscription_expiry = ?, reward_points = reward_points + ?
+        SET is_premium = 1, 
+            subscription_expiry = ?, 
+            reward_points = COALESCE(reward_points, 0) - ? + ?
         WHERE id = ?
-    """, (expiry_str, points_to_add, owner['id']))
+    """, (expiry_str, points_redeemed, points_earned, owner['id']))
     
     conn.commit()
     conn.close()
+
+    # Success message
+    if is_renewal:
+        if discount_amount > 0:
+            success_message = (
+                f"🎉 Subscription Extended! You renewed your {plan_name} with a ৳{discount_amount} discount! "
+                f"New expiry: {expiry_str}. You also earned {points_earned} reward points!"
+            )
+        else:
+            success_message = (
+                f"🎉 Subscription Extended! Your {plan_name} has been renewed. "
+                f"New expiry: {expiry_str}. You earned {points_earned} reward points!"
+            )
+    else:
+        if discount_amount > 0:
+            success_message = (
+                f"🎉 Welcome to Premium! You purchased the {plan_name} with a ৳{discount_amount} discount! "
+                f"You also earned {points_earned} new reward points!"
+            )
+        else:
+            success_message = (
+                f"🎉 Welcome to Premium! You are now subscribed to the {plan_name}. "
+                f"You earned {points_earned} reward points!"
+            )
     
-    # 4. Send Email Receipt
-    subject = "Payment Receipt - Premium Subscription"
-    body = f"""Hello {owner['name']},
+    return render_template('payment_success.html', message=success_message)
 
-Thank you for subscribing to PetConnect Premium!
-
-PAYMENT DETAILS:
-----------------
-Plan        : {plan.title()} Subscription
-Amount      : {amount} BDT
-Method      : bKash
-Trx ID      : {trx_id}
-Date        : {payment_date}
-Valid Until : {expiry_str}
-
-You now have access to 24/7 PetBot and have earned {points_to_add} reward points!
-
-Regards,
-PetConnect Team
-"""
-    send_email_async(owner['email'], subject, body)
-
-    flash(f"Payment Successful! You are now a Premium Member. Receipt sent to email.", "success")
-    return redirect(url_for('owner_dashboard'))
-
+@app.route('/payment/cancel')
+def payment_cancel():
+    flash("Payment was cancelled.", "warning")
+    return redirect(url_for('pricing'))
 
 if __name__ == "__main__":
     app.run(debug=True)

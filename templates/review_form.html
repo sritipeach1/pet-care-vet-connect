@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Leave Review</title>
+</head>
+<body>
+  <h2>Leave a Review</h2>
+
+  <p><strong>Clinic:</strong> {{ appt.clinic_name }}</p>
+  <p><strong>Doctor:</strong> {{ appt.doctor_name }}</p>
+  <p><strong>Pet:</strong> {{ appt.pet_name }}</p>
+  <p><strong>Time:</strong> {{ appt.appointment_date }}</p>
+
+  <form method="POST">
+    <hr>
+
+    <h3>Doctor Review</h3>
+    <label>Doctor Rating (1–5):</label>
+    <select name="doctor_rating" required>
+      <option value="">Select</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+    </select>
+
+    <br><br>
+    <label>Doctor Review:</label><br>
+    <textarea name="doctor_review" rows="4" cols="50" required></textarea>
+
+    <hr>
+
+    <h3>Clinic Review</h3>
+    <label>Clinic Rating (1–5):</label>
+    <select name="clinic_rating" required>
+      <option value="">Select</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+    </select>
+
+    <br><br>
+    <label>Clinic Review:</label><br>
+    <textarea name="clinic_review" rows="4" cols="50" required></textarea>
+
+    <br><br>
+    <button type="submit">Submit Review</button>
+    <a href="{{ url_for('owner_appointments') }}">Cancel</a>
+  </form>
+</body>
+</html>
