@@ -70,15 +70,11 @@ CREATE TABLE appointments (
     appointment_date DATETIME NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending',
 
-    -- Doctor review
-    rating INTEGER,              -- 1 to 5
-    review_text TEXT,
-
-    -- Clinic review
-    clinic_rating INTEGER,       -- 1 to 5
-    clinic_review_text TEXT,
-
-    reviewed_at TEXT,
+    rating INTEGER,                 -- doctor rating (1-5)
+    review_text TEXT,               -- doctor review text
+    clinic_rating INTEGER,          -- optional clinic rating
+    clinic_review_text TEXT,        -- optional clinic review text
+    reviewed_at TEXT,               -- timestamp
 
     FOREIGN KEY (pet_id) REFERENCES pets(id),
     FOREIGN KEY (doctor_id) REFERENCES doctors(id)

@@ -38,8 +38,13 @@
       <div>
         <div class="flex items-center space-x-2">
           <h2 class="text-xl font-semibold text-blue-900">{{ clinic['name'] }}</h2>
+
+          <!-- ✅ Rating + Review Count -->
           <span class="text-yellow-500 text-sm">
             ★ {{ '%.1f'|format(clinic['clinic_rating'] or 0) }}
+            <span class="text-gray-400 text-xs">
+              ({{ clinic['clinic_review_count'] or 0 }} reviews)
+            </span>
           </span>
         </div>
 
