@@ -3,3 +3,14 @@
 2. CLINIC:  clinic@test.com       / 1234"
 3. OWNER:   owner@test.com        / 1234
 4. PENDING: pending@test.com      / 1234"
+
+Enter the Test Card details:
+Number: 4242 4242 4242 4242
+Date: Any future date (e.g., 12/30)
+CVC: 123
+For invalid result:
+card Number = 4000 0000 0000 0002
+# --- CONFIGURATION ---
+POINTS_PER_BOOKING = 10       # Earn 10 points per appointment
+POINTS_THRESHOLD = 1000       # Need 1000 points to get a discount
+DISCOUNT_AMOUNT = 50          # 1000 points = 50 Taka off
