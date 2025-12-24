@@ -86,7 +86,7 @@
         {% endif %}
 
         {% if owner and owner['is_premium'] %}
-            <a href="#"
+            <a href="{{ url_for('owner_petbot') }}"
                class="px-4 py-1.5 rounded-full text-xs md:text-sm bg-purple-600 text-white shadow hover:bg-purple-700 transition no-underline">
                 🤖PetBot AI
             </a>

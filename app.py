@@ -8,6 +8,8 @@ import re
 from flask import jsonify
 import stripe
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import google.generativeai as genai
 
 app = Flask(__name__)
 #STRIPE CONFIGURATION 
@@ -20,12 +22,89 @@ app.config["DATABASE"] = os.path.join("instance", "petcare.db")
 app.config["UPLOAD_FOLDER"] = os.path.join("static", "pet_photos")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
+load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+
+
+#######################     PETBOT ##################### sriti
+# helper
+def petbot_response(user_message):
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+
+        prompt = f"""
+You are PetBot, a helpful pet care assistant.
+
+Rules:
+- Give short but helpful advice.
+- Suggest whether they should visit a vet if symptoms are serious.
+- Give feeding/vaccine tips if relevant.
+- Always say: "I am not a vet, but I can help with guidance."
+
+User says: {user_message}
+        """
+
+        response = model.generate_content(prompt)
+
+        reply = response.text.strip()
+
+        # ✅ remove markdown symbols like **bold**
+        reply = re.sub(r"\*\*", "", reply)
+
+        return reply
+
+    except Exception as e:
+        print("PetBot Error:", e)
+        return "⚠️ PetBot is currently unavailable. Please try again later."
+
+@app.route("/owner/petbot")
+def owner_petbot():
+    guard = _require_owner()
+    if guard:
+        return guard
+
+    conn = get_db()
+    owner = _get_owner_for_current_user(conn)
+    conn.close()
+
+    # ✅ Free users can't access
+    if not owner or owner["is_premium"] != 1:
+        flash("PetBot is only available for Premium Members.", "warning")
+        return redirect(url_for("pricing"))
+
+    return render_template("owner_petbot.html", owner=owner)
+
+@app.route("/owner/petbot/chat", methods=["POST"])
+def owner_petbot_chat():
+    guard = _require_owner()
+    if guard:
+        return guard
+
+    conn = get_db()
+    owner = _get_owner_for_current_user(conn)
+    conn.close()
+
+    # ✅ Free users blocked
+    if not owner or owner["is_premium"] != 1:
+        return jsonify({"reply": "⚠️ PetBot is only for Premium Members."})
+
+    data = request.get_json()  # ✅ expecting JSON
+    user_message = (data.get("message") or "").strip() if data else ""
+
+    if not user_message:
+        return jsonify({"reply": "Please type something first."})
+
+    bot_reply = petbot_response(user_message)
+    return jsonify({"reply": bot_reply})
+
+
+#########################################################################
 # ------------- EMAIL HELPER (Feature 10: Notifications) -------------
 
 import os
@@ -550,7 +629,6 @@ def register():
 
     return render_template("register.html", default_role=default_role)
 
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -561,22 +639,38 @@ def login():
         user = conn.execute(
             "SELECT * FROM users WHERE email = ?", (email,)
         ).fetchone()
-        conn.close()
 
         if user and check_password_hash(user["password_hash"], password):
+
             # block unverified clinics
             if user["role"] == "clinic" and not user["is_verified"]:
+                conn.close()
                 flash("Your clinic account is pending admin verification.", "warning")
                 return redirect(url_for("login"))
+
+            session.clear()  
 
             session["user_id"] = user["id"]
             session["user_name"] = user["name"]
             session["role"] = user["role"]
 
+            # ✅ Premium flag for owners
+            session["is_premium"] = 0
+            if user["role"] == "owner":
+                owner = conn.execute(
+                    "SELECT is_premium FROM owners WHERE user_id = ?",
+                    (user["id"],)
+                ).fetchone()
+
+                if owner and owner["is_premium"] == 1:
+                    session["is_premium"] = 1
+
+            conn.close()
             flash("Login successful!", "success")
             return redirect(url_for("dashboard"))
-        else:
-            flash("Invalid email or password.", "danger")
+
+        conn.close()
+        flash("Invalid email or password.", "danger")
 
     return render_template("login.html")
 

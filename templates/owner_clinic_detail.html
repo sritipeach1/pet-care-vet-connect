@@ -22,9 +22,17 @@
          class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-100">
         Profile
       </a>
-      <span class="px-4 py-1 rounded-full text-gray-400 bg-blue-50 border border-dashed border-blue-200">
-        PetBot (coming soon)
-      </span>
+      {% if owner and owner['is_premium'] %}
+        <a href="{{ url_for('owner_petbot') }}"
+            class="px-4 py-1 rounded-full text-blue-700 hover:bg-blue-200">
+          PetBot ⭐
+        </a>
+      {% else %}
+        <a href="{{ url_for('pricing') }}"
+            class="px-4 py-1 rounded-full text-gray-400 bg-blue-50 border border-dashed border-blue-200">
+          PetBot (Locked)
+        </a>
+      {% endif %}
     </div>
 
     <a href="{{ url_for('owner_search') }}"
