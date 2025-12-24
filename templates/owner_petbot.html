@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-5xl mx-auto">
+
+  <!-- ✅ Fixed Warning Banner -->
+  <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-2xl px-4 py-3 text-sm mb-4">
+    ⚠️ <b>Reminder:</b> PetBot is not a veterinarian. Always consult a real vet for emergencies.
+  </div>
+
+  <div class="flex items-center justify-between mb-3">
+    <div>
+      <h2 class="text-xl font-semibold text-blue-800 mb-1">PetBot Assistant</h2>
+      <p class="text-xs text-gray-500">
+        Ask symptoms, pet-care questions, feeding, vaccines, or anything related to your pet.
+      </p>
+    </div>
+
+    <!-- ✅ Clear Chat Button -->
+    <button onclick="clearChat()"
+      class="px-4 py-2 rounded-full bg-red-50 border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-100 transition">
+      🧹 Clear Chat
+    </button>
+  </div>
+
+  <!-- Chat Box -->
+  <div class="bg-white border border-blue-100 rounded-2xl shadow-sm p-5">
+
+    <div id="chatBox"
+      class="h-96 overflow-y-auto space-y-4 mb-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+
+      <!-- ✅ Bot Welcome Message -->
+      <div class="flex items-start gap-2">
+        <div class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-blue-200">
+          🤖
+        </div>
+        <div class="bg-white p-3 rounded-xl text-sm text-gray-700 border border-blue-100 max-w-[75%]">
+          👋 Hi! I'm PetBot. Ask me anything about your pet!
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <form id="chatForm" class="flex gap-2">
+      <input type="text" id="userMessage"
+        class="flex-1 border border-blue-200 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-blue-400"
+        placeholder="Type your message..." required>
+
+      <button type="submit"
+        class="px-5 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-sm font-semibold">
+        Send
+      </button>
+    </form>
+  </div>
+
+</div>
+
+<script>
+const chatBox = document.getElementById("chatBox");
+
+document.getElementById("chatForm").addEventListener("submit", async function(e){
+  e.preventDefault();
+
+  const msgInput = document.getElementById("userMessage");
+  const msg = msgInput.value.trim();
+  if (!msg) return;
+
+  // ✅ Show user message with emoji icon
+  chatBox.innerHTML += `
+    <div class="flex items-start gap-2 justify-end">
+      <div class="bg-indigo-600 text-white p-3 rounded-xl text-sm max-w-[75%]">
+        ${msg}
+      </div>
+      <div class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-indigo-200">
+        👤
+      </div>
+    </div>
+  `;
+  msgInput.value = "";
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  // ✅ Show typing indicator
+  const typingId = "typing-" + Date.now();
+  chatBox.innerHTML += `
+    <div id="${typingId}" class="flex items-start gap-2">
+      <div class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-blue-200">
+        🤖
+      </div>
+      <div class="bg-white p-3 rounded-xl text-sm text-gray-500 border border-blue-100 max-w-[75%] italic">
+        PetBot is typing...
+      </div>
+    </div>
+  `;
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  try {
+    const res = await fetch("/owner/petbot/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg })
+    });
+
+    const data = await res.json();
+
+    // ✅ Remove typing bubble
+    document.getElementById(typingId).remove();
+
+    // ✅ Show bot reply with robot icon
+    chatBox.innerHTML += `
+      <div class="flex items-start gap-2">
+        <div class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-blue-200">
+          🤖
+        </div>
+        <div class="bg-white p-3 rounded-xl text-sm text-gray-700 border border-blue-100 max-w-[75%] whitespace-pre-line">
+          ${data.reply}
+        </div>
+      </div>
+    `;
+
+  } catch (err) {
+    document.getElementById(typingId).remove();
+
+    chatBox.innerHTML += `
+      <div class="flex items-start gap-2">
+        <div class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-blue-200">
+          🤖
+        </div>
+        <div class="bg-white p-3 rounded-xl text-sm text-red-600 border border-red-200 max-w-[75%]">
+          ⚠️ PetBot failed to respond. Try again.
+        </div>
+      </div>
+    `;
+  }
+
+  chatBox.scrollTop = chatBox.scrollHeight;
+});
+
+// ✅ Clear chat function
+function clearChat(){
+  chatBox.innerHTML = `
+    <div class="flex items-start gap-2">
+      <div class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-blue-200">
+        🤖
+      </div>
+      <div class="bg-white p-3 rounded-xl text-sm text-gray-700 border border-blue-100 max-w-[75%]">
+        👋 Hi! I'm PetBot. Ask me anything about your pet!
+      </div>
+    </div>
+  `;
+}
+</script>
+
+{% endblock %}
