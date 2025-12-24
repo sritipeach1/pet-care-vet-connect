@@ -12,15 +12,14 @@ def add_column_if_missing(cur, table, column_def):
     else:
         print(f"⚠️ Column already exists: {col_name}")
 
-
 def main():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # ✅ Add missing review columns in appointments
-    add_column_if_missing(cur, "appointments", "review_text TEXT")
-    add_column_if_missing(cur, "appointments", "clinic_rating INTEGER")
-    add_column_if_missing(cur, "appointments", "clinic_review_text TEXT")
+    # ✅ make sure the columns used in app.py exist
+    add_column_if_missing(cur, "appointments", "rating INTEGER")
+    add_column_if_missing(cur, "appointments", "doctor_review TEXT")
+    add_column_if_missing(cur, "appointments", "clinic_review TEXT")
     add_column_if_missing(cur, "appointments", "reviewed_at TEXT")
 
     conn.commit()
