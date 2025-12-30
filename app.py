@@ -44,7 +44,7 @@ You are PetBot, a helpful pet care assistant.
 Rules:
 - Give short but helpful advice.
 - Suggest whether they should visit a vet if symptoms are serious.
-- Give feeding/vaccine tips if relevant.
+- Give feeding/vaccine tips if relevant. Never mention any medications.
 - Always say: "I am not a vet, but I can help with guidance."
 
 User says: {user_message}
@@ -1185,6 +1185,27 @@ def clinic_dashboard():
             (clinic["id"],),
         ).fetchall()
 
+    # 3. Reviews tab ( SRITI )
+    reviews = []
+    if tab == "reviews":
+        reviews = cur.execute("""
+            SELECT 
+                a.rating, 
+                a.doctor_review, 
+                a.clinic_review, 
+                a.reviewed_at, 
+                a.appointment_date,
+                d.name AS doctor_name,
+                p.name AS pet_name,
+                o.name AS owner_name
+            FROM appointments a
+            JOIN doctors d ON a.doctor_id = d.id
+            JOIN pets p ON a.pet_id = p.id
+            JOIN owners o ON p.owner_id = o.id
+            WHERE d.clinic_id = ? 
+            AND a.rating IS NOT NULL
+            ORDER BY a.reviewed_at DESC
+        """, (clinic["id"],)).fetchall()
 
     conn.close()
 
@@ -1193,7 +1214,8 @@ def clinic_dashboard():
         clinic=clinic,
         doctors=doctors,
         tab=tab,
-        appointments_requests=appointments_requests,   # used in Manage Appointments tab
+        appointments_requests=appointments_requests, 
+        reviews=reviews  
     )
 
 @app.route("/clinic/doctor/<int:doctor_id>/appointments")
