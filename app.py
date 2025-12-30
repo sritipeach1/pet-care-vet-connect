@@ -1878,6 +1878,8 @@ def owner_search():
     rating_filter = (request.args.get("rating") or "").strip()
 
     conn = _get_conn()
+    owner = _get_owner_for_current_user(conn)
+
     cur = conn.cursor()
 
     # Locations list from clinics table
@@ -1946,6 +1948,7 @@ def owner_search():
         q=q,
         location_filter=location_filter,
         rating_filter=rating_filter,
+        owner = owner
     )
 
 
@@ -2536,6 +2539,7 @@ def owner_appointments():
         upcoming=upcoming,
         completed=completed,
         cancelled=cancelled,
+        owner = owner
     )
 
 
@@ -2734,7 +2738,7 @@ def owner_my_reviews():
 
     conn.close()
 
-    return render_template("owner_my_reviews.html", reviews=reviews)
+    return render_template("owner_my_reviews.html", reviews=reviews,owner = owner)
 
 
 
