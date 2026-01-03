@@ -1,5 +1,7 @@
 ﻿# Pet Care Vet Connect Project
 
+
+vercel : https://pet-care-vet-connect.vercel.app/login
 🐾 PetBot AI Setup (Premium Feature)
 
 PetBot AI uses Google Gemini API and is only available for Premium users.
@@ -27,3 +29,4 @@ python update_schema.py
 
 4️⃣ Start the app
 python app.py
+
