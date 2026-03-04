@@ -39,6 +39,21 @@
   </a>
 </div>
 
+{% if outbreak_alerts %}
+<div class="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+  <h3 class="text-sm font-semibold text-red-700 mb-2">🧠💉 AI Disease Early-Warning Radar (Community)</h3>
+  <div class="space-y-2">
+    {% for al in outbreak_alerts[:3] %}
+      <div class="text-xs text-red-900 bg-white border border-red-100 rounded-lg px-3 py-2">
+        <div class="font-semibold">🦠 {{ al['disease_guess'] }} • {{ al['risk_level'] }} Risk</div>
+        <div>📍 Area: {{ al['area'] }} | 📊 Reports: {{ al['number_of_reports'] }} (last {{ al['timeframe_days'] }} days)</div>
+        <div class="text-red-700">⚠ Recommendation: {{ al['recommendation'] }}</div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <div class="bg-white shadow-md rounded-lg p-6 border-l-4 border-pink-500 min-h-[450px]">
 
   {# -------------------- DOCTORS TAB -------------------- #}
@@ -205,6 +220,17 @@
                 <p class="text-xs text-gray-500 mt-0.5">
                   {{ a['appointment_date'] }}
                 </p>
+
+                {% if a['appointment_reason'] %}
+                  <p class="text-xs text-gray-700 mt-1">
+                    <span class="font-medium">Reason:</span> {{ a['appointment_reason'] }}
+                  </p>
+                {% endif %}
+                {% if a['symptom_notes'] %}
+                  <p class="text-xs text-gray-700 mt-1">
+                    <span class="font-medium">Symptoms:</span> {{ a['symptom_notes'] }}
+                  </p>
+                {% endif %}
 
                 {% if s == 'reschedule_pending' %}
                   <p class="text-[11px] text-orange-600 mt-1">

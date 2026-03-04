@@ -29,6 +29,26 @@
     }
 </style>
 
+{% if outbreak_alerts %}
+<div class="bg-orange-50 border border-orange-300 rounded-lg p-4 mb-6">
+    <div class="flex items-start gap-3">
+        <span class="text-2xl">⚠️</span>
+        <div>
+            <h3 class="font-bold text-orange-900 mb-2">Health Alert for Your Area</h3>
+            {% for al in outbreak_alerts[:2] %}
+            <div class="text-sm text-orange-800 mb-2 p-2 bg-white rounded">
+                <strong>{{ al['disease_guess'] }}</strong> detected in {{ al['area'] }}
+                <br>
+                <small>{{ al['number_of_reports'] }} cases reported • Risk: {{ al['risk_level'] }}</small>
+                <br>
+                <small class="text-orange-700">{{ al['recommendation'] }}</small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="bg-white p-6 rounded-lg shadow mb-6">
     
     <div class="flex justify-between items-start mb-4">

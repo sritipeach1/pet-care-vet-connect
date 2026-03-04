@@ -10,6 +10,7 @@ import stripe
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import google.generativeai as genai
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__)
 #STRIPE CONFIGURATION 
@@ -276,6 +277,249 @@ def get_db():
     return conn
 
 
+def ensure_runtime_schema():
+    """Add columns needed by newer features without breaking existing DBs."""
+    conn = get_db()
+    cur = conn.cursor()
+
+    def add_column_if_missing(table, column_def):
+        col_name = column_def.split()[0]
+        cols = cur.execute(f"PRAGMA table_info({table})").fetchall()
+        existing = {c["name"] if isinstance(c, sqlite3.Row) else c[1] for c in cols}
+        if col_name not in existing:
+            cur.execute(f"ALTER TABLE {table} ADD COLUMN {column_def}")
+
+    # Existing app features
+    add_column_if_missing("appointments", "rating INTEGER")
+    add_column_if_missing("appointments", "doctor_review TEXT")
+    add_column_if_missing("appointments", "clinic_review TEXT")
+    add_column_if_missing("appointments", "reviewed_at TEXT")
+
+    # Outbreak radar inputs
+    add_column_if_missing("appointments", "appointment_reason TEXT")
+    add_column_if_missing("appointments", "symptom_notes TEXT")
+
+    conn.commit()
+    conn.close()
+
+
+def detect_outbreak_clusters(reports, threshold=8):
+    """
+    Detect possible community-level pet disease outbreaks.
+    
+    Args:
+        reports: List of dicts with keys:
+            - symptoms: str (symptom description)
+            - reason: str (appointment reason)
+            - area: str (location/neighborhood)
+            - timestamp: str (appointment datetime)
+        threshold: int (minimum reports per cluster to trigger alert, default 8)
+    
+    Returns:
+        List of outbreak alert dicts with:
+            - disease_guess: str
+            - area: str
+            - number_of_reports: int
+            - timeframe_days: int
+            - risk_level: str (Low/Medium/High)
+            - recommendation: str
+    """
+    disease_patterns = {
+        "Possible Parvo Cluster": {
+            "keywords": ["parvo", "parvovirus", "bloody stool", "blood in stool"],
+            "recommendation": "Avoid dog parks temporarily and isolate symptomatic dogs. Seek prompt veterinary care.",
+        },
+        "Possible Tick-Borne Cluster": {
+            "keywords": ["tick", "ticks", "fever", "anemia", "pale gum", "weakness"],
+            "recommendation": "Use tick prevention immediately and avoid bushy/tick-heavy areas for now.",
+        },
+        "Possible Respiratory Cluster": {
+            "keywords": ["cough", "sneez", "nasal", "breathing", "respiratory", "flu", "cold"],
+            "recommendation": "Limit group pet interactions and monitor breathing symptoms closely.",
+        },
+        "Possible GI Infection Cluster": {
+            "keywords": ["diarrhea", "vomit", "vomiting", "appetite", "eating", "food", "nausea", "gi"],
+            "recommendation": "Monitor hydration and seek veterinary care. Practice food safety protocols.",
+        },
+    }
+    
+    clusters = {}  # Key: (area, disease_name)
+    
+    for report in reports:
+        area = (report.get("area") or "Unknown Area").strip()
+        combined_text = f"{report.get('symptoms', '')} {report.get('reason', '')}".lower()
+        
+        if not combined_text.strip():
+            continue
+        
+        for disease_name, pattern_info in disease_patterns.items():
+            if any(keyword in combined_text for keyword in pattern_info["keywords"]):
+                key = (area, disease_name)
+                if key not in clusters:
+                    clusters[key] = {
+                        "disease_guess": disease_name,
+                        "area": area,
+                        "number_of_reports": 0,
+                        "recommendation": pattern_info["recommendation"],
+                        "timestamps": []
+                    }
+                clusters[key]["number_of_reports"] += 1
+                clusters[key]["timestamps"].append(report.get("timestamp"))
+    
+    # Filter clusters below threshold
+    alerts = []
+    for (area, disease_name), data in clusters.items():
+        if data["number_of_reports"] >= threshold:
+            # Calculate timeframe
+            if data["timestamps"]:
+                from datetime import datetime
+                timestamps = [datetime.fromisoformat(ts.replace('Z', '+00:00')) if isinstance(ts, str) else ts 
+                              for ts in data["timestamps"]]
+                min_time = min(timestamps)
+                max_time = max(timestamps)
+                timeframe = (max_time - min_time).days + 1
+            else:
+                timeframe = 1
+            
+            # Risk level based on report count
+            if data["number_of_reports"] >= 15:
+                risk = "High"
+            elif data["number_of_reports"] >= 10:
+                risk = "Medium"
+            else:
+                risk = "Low"
+            
+            alert = {
+                "disease_guess": disease_name,
+                "area": area,
+                "number_of_reports": data["number_of_reports"],
+                "timeframe_days": timeframe,
+                "risk_level": risk,
+                "recommendation": data["recommendation"]
+            }
+            alerts.append(alert)
+    
+    # Sort by number of reports (descending)
+    alerts.sort(key=lambda x: x["number_of_reports"], reverse=True)
+    return alerts
+
+
+def compute_pet_outbreak_alerts(conn, days_window=14, area_filter=None):
+    """
+    Wrapper function that fetches reports from DB and calls detect_outbreak_clusters.
+    Uses the standard threshold of 8 reports.
+    """
+    rows = conn.execute(
+        """
+        SELECT
+            a.appointment_date,
+            COALESCE(a.symptom_notes, '') AS symptom_notes,
+            COALESCE(a.appointment_reason, '') AS appointment_reason,
+            COALESCE(o.location, '') AS owner_area,
+            COALESCE(p.animal_type, 'Pet') AS animal_type
+        FROM appointments a
+        JOIN pets p   ON a.pet_id = p.id
+        JOIN owners o ON p.owner_id = o.id
+        WHERE datetime(a.appointment_date) >= datetime('now', ?)
+          AND LOWER(COALESCE(a.status, '')) NOT IN ('cancelled', 'canceled', 'owner_cancelled', 'clinic_cancelled')
+        """,
+        (f"-{int(days_window)} days",),
+    ).fetchall()
+
+    # Convert to report format for detect_outbreak_clusters
+    reports = []
+    for r in rows:
+        area = (r["owner_area"] or "Unknown Area").strip()
+        if area_filter and area.lower() != area_filter.strip().lower():
+            continue
+        
+        reports.append({
+            "symptoms": r["symptom_notes"] or "",
+            "reason": r["appointment_reason"] or "",
+            "area": area,
+            "timestamp": r["appointment_date"]
+        })
+    
+    # Use threshold of 8 as per specification
+    alerts = detect_outbreak_clusters(reports, threshold=8)
+    
+    # Add window info for backward compatibility
+    for alert in alerts:
+        alert["window_days"] = days_window
+        alert["signal"] = alert["disease_guess"]
+    
+    return alerts
+
+
+def save_outbreak_alerts_to_db():
+    """Daily job: Detect clusters, save to outbreak_alerts table, clean old alerts."""
+    try:
+        conn = get_db()
+        conn.row_factory = sqlite3.Row
+        
+        # Get all recent appointments (last 14 days)
+        rows = conn.execute(
+            """
+            SELECT
+                a.appointment_date,
+                COALESCE(a.symptom_notes, '') AS symptom_notes,
+                COALESCE(a.appointment_reason, '') AS appointment_reason,
+                COALESCE(o.location, '') AS owner_area,
+                COALESCE(p.animal_type, 'Pet') AS animal_type
+            FROM appointments a
+            JOIN pets p   ON a.pet_id = p.id
+            JOIN owners o ON p.owner_id = o.id
+            WHERE datetime(a.appointment_date) >= datetime('now', '-14 days')
+              AND LOWER(COALESCE(a.status, '')) NOT IN ('cancelled', 'canceled', 'owner_cancelled', 'clinic_cancelled')
+            """
+        ).fetchall()
+        
+        # Convert to reports format
+        reports = []
+        for r in rows:
+            area = (r["owner_area"] or "Unknown Area").strip()
+            reports.append({
+                "symptoms": r["symptom_notes"] or "",
+                "reason": r["appointment_reason"] or "",
+                "area": area,
+                "timestamp": r["appointment_date"]
+            })
+        
+        # Detect clusters
+        alerts = detect_outbreak_clusters(reports, threshold=8)
+        
+        # Update outbreak_alerts table
+        for alert in alerts:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO outbreak_alerts 
+                (disease_guess, area, number_of_reports, timeframe_days, risk_level, recommendation, detected_at, status)
+                VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')
+                """,
+                (
+                    alert["disease_guess"],
+                    alert["area"],
+                    alert["number_of_reports"],
+                    alert["timeframe_days"],
+                    alert["risk_level"],
+                    alert["recommendation"]
+                )
+            )
+        
+        # Remove old alerts (> 14 days old)
+        conn.execute(
+            "DELETE FROM outbreak_alerts WHERE datetime(detected_at) < datetime('now', '-14 days')"
+        )
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"[Outbreak Alert Job] Ran at {datetime.now()}. Found {len(alerts)} active clusters.")
+        
+    except Exception as e:
+        print(f"[Outbreak Alert Job] Error: {e}")
+
+
 def init_db():
     if not os.path.exists("instance"):
         os.makedirs("instance")
@@ -502,6 +746,9 @@ def get_appointment_context(appt_id):
 if not os.path.exists(app.config["DATABASE"]):
     init_db()
 
+# keep schema forward-compatible for existing databases
+ensure_runtime_schema()
+
 from datetime import datetime
 
 def auto_update_past_appointments(conn):
@@ -724,6 +971,12 @@ def admin_dashboard():
     rejected = conn.execute('SELECT * FROM users WHERE role=? AND is_verified=?',
                             ('clinic', 2)).fetchall()
 
+    # Fetch active outbreak alerts from database
+    outbreak_alerts = conn.execute(
+        "SELECT disease_guess, area, number_of_reports, timeframe_days, risk_level, recommendation "
+        "FROM outbreak_alerts WHERE status='active' ORDER BY number_of_reports DESC"
+    ).fetchall()
+    
     conn.close()
 
     # 3. Render template with ALL lists
@@ -731,7 +984,28 @@ def admin_dashboard():
                            pending=pending,
                            approved=approved,
                            rejected=rejected,
+                           outbreak_alerts=outbreak_alerts,
                            wide_mode=True)
+
+
+@app.route('/api/outbreak-radar')
+def outbreak_radar_api():
+    if 'user_id' not in session or session.get('role') not in ('admin', 'clinic'):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    days = request.args.get('days', default=14, type=int) or 14
+    days = max(7, min(days, 30))
+
+    conn = get_db()
+    area_filter = None
+    if session.get('role') == 'clinic':
+        clinic = get_or_create_clinic_for_current_user()
+        area_filter = (clinic['location'] or '').strip() if clinic else None
+
+    alerts = compute_pet_outbreak_alerts(conn, days_window=days, area_filter=area_filter)
+    conn.close()
+
+    return jsonify({"days": days, "alerts": alerts})
 
 
 @app.route('/approve_clinic/<int:user_id>')
@@ -781,10 +1055,27 @@ def owner_dashboard():
     pets = cur.execute(
         "SELECT * FROM pets WHERE owner_id = ?", (owner["id"],)
     ).fetchall()
+    
+    # Fetch outbreak alerts for owner's area
+    owner_area = ""
+    if owner:
+        try:
+            owner_area = (owner["location"] or "").strip()
+        except (KeyError, TypeError):
+            owner_area = ""
+    
+    outbreak_alerts = []
+    if owner_area:
+        outbreak_alerts = cur.execute(
+            "SELECT disease_guess, area, number_of_reports, timeframe_days, risk_level, recommendation "
+            "FROM outbreak_alerts WHERE status='active' AND area=? ORDER BY number_of_reports DESC",
+            (owner_area,)
+        ).fetchall()
+    
     conn.close()
 
     tab = request.args.get("tab", "owner")
-    return render_template("owner_dashboard.html", owner=owner, pets=pets, tab=tab)
+    return render_template("owner_dashboard.html", owner=owner, pets=pets, tab=tab, outbreak_alerts=outbreak_alerts)
 
 
 @app.route("/owner/pets/add", methods=["GET", "POST"])
@@ -1172,6 +1463,8 @@ def clinic_dashboard():
                 p.gender             AS pet_gender,
                 p.vaccination_status AS vaccination_status,
                 p.vaccination_status AS pet_vaccination_status,
+                COALESCE(a.appointment_reason, '') AS appointment_reason,
+                COALESCE(a.symptom_notes, '') AS symptom_notes,
                 o.name               AS owner_name,
                 d.name               AS doctor_name
             FROM appointments a
@@ -1207,6 +1500,18 @@ def clinic_dashboard():
             ORDER BY a.reviewed_at DESC
         """, (clinic["id"],)).fetchall()
 
+    local_area = (clinic["location"] or "").strip() if clinic else ""
+    
+    # Fetch alerts for this clinic's area from database
+    if local_area:
+        outbreak_alerts = cur.execute(
+            "SELECT disease_guess, area, number_of_reports, timeframe_days, risk_level, recommendation "
+            "FROM outbreak_alerts WHERE status='active' AND area=? ORDER BY number_of_reports DESC",
+            (local_area,)
+        ).fetchall()
+    else:
+        outbreak_alerts = []
+
     conn.close()
 
     return render_template(
@@ -1215,7 +1520,8 @@ def clinic_dashboard():
         doctors=doctors,
         tab=tab,
         appointments_requests=appointments_requests, 
-        reviews=reviews  
+        reviews=reviews,
+        outbreak_alerts=outbreak_alerts
     )
 
 @app.route("/clinic/doctor/<int:doctor_id>/appointments")
@@ -2375,6 +2681,12 @@ def book_appointment(clinic_id, doctor_id):
     pet_id = request.form.get("pet_id")
     date = request.form.get("date")
     time_str = request.form.get("time")
+    appointment_reason = (request.form.get("appointment_reason") or "").strip()
+    symptom_notes = (request.form.get("symptom_notes") or "").strip()
+
+    # keep payload small
+    appointment_reason = appointment_reason[:300]
+    symptom_notes = symptom_notes[:700]
 
     if not pet_id or not date or not time_str:
         flash("Please select pet, date, and time.", "warning")
@@ -2432,9 +2744,12 @@ def book_appointment(clinic_id, doctor_id):
 
     # Insert appointment
     cur.execute("""
-        INSERT INTO appointments (pet_id, doctor_id, appointment_date, status)
-        VALUES (?, ?, ?, 'pending')
-    """, (pet_id, doctor_id, appointment_dt))
+        INSERT INTO appointments (
+            pet_id, doctor_id, appointment_date, status,
+            appointment_reason, symptom_notes
+        )
+        VALUES (?, ?, ?, 'pending', ?, ?)
+    """, (pet_id, doctor_id, appointment_dt, appointment_reason, symptom_notes))
     appt_id = cur.lastrowid
     #Feature 12 (Rayan)
     # Award points ONLY if premium (check is_premium = 1)
@@ -2974,5 +3289,14 @@ def payment_cancel():
     flash("Payment was cancelled.", "warning")
     return redirect(url_for('pricing'))
 
+
+# Initialize Background Scheduler for outbreak alert detection
+scheduler = BackgroundScheduler()
+scheduler.add_job(save_outbreak_alerts_to_db, 'cron', hour=0, minute=0, id='outbreak_alert_job')
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    scheduler.start()
+    try:
+        app.run(debug=True)
+    except KeyboardInterrupt:
+        scheduler.shutdown()

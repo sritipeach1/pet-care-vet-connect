@@ -6,6 +6,25 @@
     <p class="text-gray-500">manage vet clinic applications</p>
 </div>
 
+{% if outbreak_alerts %}
+<div class="bg-red-50 shadow-sm rounded-lg mb-6 p-6 border-l-4 border-red-500">
+    <div class="flex justify-between items-center mb-3">
+        <h3 class="text-xl font-bold text-red-800">🧠💉 AI Disease Early-Warning Radar</h3>
+        <span class="text-xs text-red-700 bg-red-100 px-3 py-1 rounded-full">Community level • Not diagnosis</span>
+    </div>
+    <div class="space-y-3">
+        {% for al in outbreak_alerts[:8] %}
+        <div class="bg-white border border-red-100 rounded-lg p-3 text-sm">
+            <div class="font-semibold text-red-900">🦠 {{ al['disease_guess'] }}</div>
+            <div class="text-gray-700">📍 Area: {{ al['area'] }}</div>
+            <div class="text-gray-700">📊 Risk: <span class="font-semibold">{{ al['risk_level'] }}</span> | Reports: {{ al['number_of_reports'] }} in last {{ al['timeframe_days'] }} days</div>
+            <div class="text-red-700">⚠ Recommendation: {{ al['recommendation'] }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <div class="bg-white shadow-md rounded-lg mb-6 p-6 border-l-4 border-pink-500">
     <div class="flex justify-between items-center mb-4">
         <h3 class="text-xl font-bold text-gray-800">Pending Applications</h3>
