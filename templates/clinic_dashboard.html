@@ -277,6 +277,83 @@
       {% endif %}
     </div>
 
+    {# -------------------- ✅ APPOINTMENT HISTORY -------------------- #}
+    <div class="mt-8">
+      <h4 class="text-sm font-semibold text-gray-700 mb-2">Appointment History</h4>
+
+      {% if appointments_approved %}
+        <div class="space-y-3">
+          {% for a in appointments_approved %}
+            {% set s = (a['status'] or '')|lower %}
+
+            <div class="bg-white border {% if s == 'completed' %}border-green-100{% else %}border-blue-100{% endif %} rounded-xl px-4 py-3 text-sm">
+
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <img
+                    src="{{ url_for('static', filename=(a['pet_photo'] or 'images/paw-placeholder.png')) }}"
+                    alt="Pet photo"
+                    class="w-10 h-10 rounded-full object-cover border {% if s == 'completed' %}border-green-100{% else %}border-blue-100{% endif %}"
+                  />
+
+                  <p class="font-semibold text-gray-900 truncate">
+                    {{ a['pet_name'] }}
+                    <span class="text-gray-500 font-normal">({{ a['owner_name'] }})</span>
+                  </p>
+                </div>
+
+                <span class="text-xs px-3 py-1 rounded-full
+                            {% if s == 'completed' %}
+                              bg-green-50 text-green-700 border border-green-200
+                            {% else %}
+                              bg-blue-50 text-blue-700 border border-blue-200
+                            {% endif %}">
+                  {{ (a['status'] or '')|replace('_', ' ')|title }}
+                </span>
+              </div>
+
+              <div class="mt-2">
+                <p class="text-xs text-gray-500">
+                  Doctor:
+                  <span class="font-medium">{{ a['doctor_name'] }}</span>
+                </p>
+
+                <p class="text-[11px] text-gray-600 mt-0.5">
+                  Pet:
+                  {{ a['pet_animal_type'] or 'Unknown type' }}
+                  {% if a['pet_breed'] %} • Breed {{ a['pet_breed'] }}{% endif %}
+                  {% if a['pet_gender'] %} • Gender {{ a['pet_gender'] }}{% endif %}
+                  {% if a['pet_age'] %} • Age: {{ a['pet_age'] }}{% endif %}
+                  {% if a['pet_vaccination_status'] %} • Vaccination: {{ a['pet_vaccination_status'] }}{% endif %}
+                </p>
+
+                <p class="text-xs text-gray-500 mt-0.5">
+                  {{ a['appointment_date'] }}
+                </p>
+
+                {% if a['appointment_reason'] %}
+                  <p class="text-xs text-gray-700 mt-1">
+                    <span class="font-medium">Reason:</span> {{ a['appointment_reason'] }}
+                  </p>
+                {% endif %}
+                {% if a['symptom_notes'] %}
+                  <p class="text-xs text-gray-700 mt-1">
+                    <span class="font-medium">Symptoms:</span> {{ a['symptom_notes'] }}
+                  </p>
+                {% endif %}
+              </div>
+
+            </div>
+
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-xs text-gray-500 bg-gray-50 border border-dashed border-gray-200 rounded-xl px-4 py-3">
+          No approved or completed appointments yet.
+        </div>
+      {% endif %}
+    </div>
+
   {# -------------------- ✅ NEW: REVIEWS TAB -------------------- #}
   {% elif tab == 'reviews' %}
 

@@ -1438,6 +1438,7 @@ def clinic_dashboard():
 
     # Only load requests if we are on the Appointments tab
     appointments_requests = []
+    appointments_approved = []
     if tab == "appointments":
         appointments_requests = cur.execute(
             """
@@ -1474,6 +1475,44 @@ def clinic_dashboard():
             WHERE d.clinic_id = ?
             AND a.status IN ('pending', 'reschedule_pending')
             ORDER BY a.appointment_date ASC
+            """,
+            (clinic["id"],),
+        ).fetchall()
+
+        # Load approved and completed appointments (history)
+        appointments_approved = cur.execute(
+            """
+            SELECT
+                a.id,
+                a.appointment_date,
+                a.status,
+                p.name               AS pet_name,
+                CASE
+                    WHEN p.photo_filename IS NOT NULL AND p.photo_filename != ''
+                    THEN 'pet_photos/' || p.photo_filename
+                    ELSE 'images/paw-placeholder.png'
+                END AS pet_photo,
+                p.age                AS age,
+                p.age                AS pet_age,
+                p.animal_type        AS animal_type,
+                p.animal_type        AS pet_animal_type,
+                p.breed              AS breed,
+                p.breed              AS pet_breed,
+                p.gender             AS gender,
+                p.gender             AS pet_gender,
+                p.vaccination_status AS vaccination_status,
+                p.vaccination_status AS pet_vaccination_status,
+                COALESCE(a.appointment_reason, '') AS appointment_reason,
+                COALESCE(a.symptom_notes, '') AS symptom_notes,
+                o.name               AS owner_name,
+                d.name               AS doctor_name
+            FROM appointments a
+            JOIN pets    p ON a.pet_id   = p.id
+            JOIN owners  o ON p.owner_id = o.id
+            JOIN doctors d ON a.doctor_id = d.id
+            WHERE d.clinic_id = ?
+            AND a.status IN ('approved', 'completed')
+            ORDER BY a.appointment_date DESC
             """,
             (clinic["id"],),
         ).fetchall()
@@ -1519,7 +1558,8 @@ def clinic_dashboard():
         clinic=clinic,
         doctors=doctors,
         tab=tab,
-        appointments_requests=appointments_requests, 
+        appointments_requests=appointments_requests,
+        appointments_approved=appointments_approved,
         reviews=reviews,
         outbreak_alerts=outbreak_alerts
     )
@@ -1586,6 +1626,11 @@ def clinic_doctor_appointments(doctor_id):
 
             p.vaccination_status AS pet_vaccination_status,
             p.vaccination_status AS vaccination_status,
+
+            COALESCE(a.appointment_reason, '') AS appointment_reason,
+            COALESCE(a.appointment_reason, '') AS reason,
+            COALESCE(a.symptom_notes, '') AS symptom_notes,
+            COALESCE(a.symptom_notes, '') AS symptoms,
 
             o.name               AS owner_name,
             d.name               AS doctor_name
@@ -2766,6 +2811,14 @@ def book_appointment(clinic_id, doctor_id):
 
     conn.commit()
     conn.close()
+    
+    # Auto-trigger outbreak detection if symptoms were provided
+    if symptom_notes and symptom_notes.strip():
+        try:
+            save_outbreak_alerts_to_db()
+        except Exception as e:
+            # Don't break booking flow if detection fails
+            print(f"[Auto-Detection] Error: {e}")
 
     # Send emails
     appt = get_appointment_context(appt_id)

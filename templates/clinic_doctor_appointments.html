@@ -68,6 +68,20 @@
                     {{ a['pet_vaccination_status'] or a['vaccination_status'] or 'N/A' }}
                   </span>
                 </p>
+
+                {% if a['appointment_reason'] or a['reason'] %}
+                  <p class="text-xs text-gray-700 mt-1">
+                    <span class="font-medium">Reason:</span>
+                    {{ a['appointment_reason'] or a['reason'] }}
+                  </p>
+                {% endif %}
+
+                {% if a['symptom_notes'] or a['symptoms'] %}
+                  <p class="text-xs text-gray-700 mt-1">
+                    <span class="font-medium">Symptoms:</span>
+                    {{ a['symptom_notes'] or a['symptoms'] }}
+                  </p>
+                {% endif %}
               </div>
             </div>
 
@@ -124,6 +138,20 @@
                 <p class="text-xs text-gray-500">
                   {{ a['appointment_date'] }}
                 </p>
+
+                {% if a['appointment_reason'] or a['reason'] %}
+                  <p class="text-xs text-gray-700 mt-1">
+                    <span class="font-medium">Reason:</span>
+                    {{ a['appointment_reason'] or a['reason'] }}
+                  </p>
+                {% endif %}
+
+                {% if a['symptom_notes'] or a['symptoms'] %}
+                  <p class="text-xs text-gray-700 mt-1">
+                    <span class="font-medium">Symptoms:</span>
+                    {{ a['symptom_notes'] or a['symptoms'] }}
+                  </p>
+                {% endif %}
               </div>
             </div>
 
